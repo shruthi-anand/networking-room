@@ -1,6 +1,6 @@
 export const CONFIG = {
   currentEvent: 'the networking room',
-  linkedinUrl: 'https://www.linkedin.com/in/shruthianand/',
+  linkedinUrl: 'https://www.linkedin.com/in/shruthianand-uxd/',
   whatsappNumber: '917349079301',
   whiteboardBio: [
     'Product Designer',
