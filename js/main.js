@@ -4,6 +4,7 @@ import { createBasketballLoadIn } from './load-in.js';
 import { createLookHint, LookAroundControls } from './look-around.js';
 import { CONFIG, getWhatsAppUrl } from './config.js';
 import './scoreboard.js';
+import { createWallBio } from './wall-bio.js';
 
 const canvas = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -17,7 +18,9 @@ const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 30);
 camera.position.set(0, CAM_Y, 0.4);
 camera.lookAt(0, CAM_Y, -1);
 addLights(scene, renderer);
-const roomMats = buildGridRoom(scene);
+const wallBio = createWallBio(renderer.capabilities.getMaxAnisotropy());
+scene.add(wallBio.mesh);
+const roomMats = [...buildGridRoom(scene), wallBio.material];
 const roomOpacity = roomMats.map((m) => m.opacity);
 const hoop = createHoop();
 scene.add(hoop.group);
