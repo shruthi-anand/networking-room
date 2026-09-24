@@ -1,6 +1,8 @@
 const DEG = Math.PI / 180;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const wrap180 = (a) => ((a + 540) % 360) - 180;
+// Tilt response: gentle near centre, quicker toward the edge (f(0)=0, f(1)=1, slope 0.2 at centre, 2.6 at the edge).
+const tiltCurve = (u) => Math.sign(u) * (0.2 * Math.abs(u) + 0.8 * Math.abs(u) ** 3);
 
 function requestMotionPermission() {
   if (typeof window.DeviceOrientationEvent === 'undefined') return Promise.resolve('unsupported');
@@ -13,9 +15,10 @@ function requestMotionPermission() {
 export class LookAroundControls {
   constructor(camera, domElement, opts = {}) {
     this.camera = camera; this.dom = domElement;
-    this.opts = { yawLimit: 38, pitchLimit: 10, dragSpeed: 0.16, tiltGain: 1.15, damping: 7, ...opts };
+    // tiltRange / tiltRangePitch: how far the phone turns (degrees) to reach the view limit.
+    this.opts = { yawLimit: 38, pitchLimit: 10, dragSpeed: 0.16, tiltRange: 38, tiltRangePitch: 25, damping: 7, ...opts };
     camera.rotation.order = 'YXZ'; this.baseYaw = camera.rotation.y; this.basePitch = camera.rotation.x;
-    this.drag = { yaw: 0, pitch: 0 }; this.tilt = { yaw: 0, pitch: 0 }; this.yaw = 0; this.pitch = 0;
+    this.drag = { yaw: 0, pitch: 0 }; this.tilt = { yaw: 0, pitch: 0 }; this.phys = { yaw: 0, pitch: 0 }; this.yaw = 0; this.pitch = 0;
     this.dragging = false; this.motionActive = false; this.frozen = false; this._pointerId = null; this._last = null; this._onFirstOrient = null;
     this._down = this._down.bind(this); this._move = this._move.bind(this); this._up = this._up.bind(this); this._orient = this._orient.bind(this); this._reorient = () => { this._last = null; this.recenter(); };
     domElement.addEventListener('pointerdown', this._down); window.addEventListener('pointermove', this._move); window.addEventListener('pointerup', this._up); window.addEventListener('pointercancel', this._up);
@@ -31,18 +34,19 @@ export class LookAroundControls {
     });
   }
   disableMotion() { window.removeEventListener('deviceorientation', this._orient); window.removeEventListener('orientationchange', this._reorient); this.motionActive = false; this.tilt.yaw = this.tilt.pitch = 0; }
-  recenter() { this.tilt.yaw = this.tilt.pitch = 0; this.drag.yaw = this.drag.pitch = 0; }
+  recenter() { this.phys.yaw = this.phys.pitch = 0; this.tilt.yaw = this.tilt.pitch = 0; this.drag.yaw = this.drag.pitch = 0; }
   // While suspended (e.g. a ball press or the throw sequence) pointer drags do not move the camera and update() is not called.
   suspend() { this.suspended = true; if (this.dragging) { this.dragging = false; this._pointerId = null; this.dom.classList.remove('is-dragging'); } }
   resume() { this.suspended = false; }
-  // Frozen (a ball is selected): the view holds completely still. Tilt keeps being tracked but not applied,
-  // so unfreezing carries on from the same view instead of jumping to wherever the phone now points.
-  freeze() { this.frozen = true; this.suspend(); }
-  unfreeze() { this.frozen = false; this.suspended = false; }
+  // Frozen: no tilt or drag input is applied, so unfreezing carries on from the same view instead of jumping to wherever
+  // the phone now points. With recenter, the view first glides back to centre and then holds there.
+  freeze({ recenter = false } = {}) { this.frozen = true; this.suspend(); if (recenter) { this._recentering = true; this.recenter(); } }
+  unfreeze() { this.frozen = false; this._recentering = false; this.suspended = false; }
   update(dt) {
-    if (this.frozen) return;
+    if (this.frozen && !this._recentering) return;
     const { yawLimit: Y, pitchLimit: P, damping } = this.opts; let ty = this.drag.yaw + this.tilt.yaw, tp = this.drag.pitch + this.tilt.pitch;
-    if (!this.dragging) { ty = clamp(ty, -Y, Y); tp = clamp(tp, -P, P); }
+    if (this.frozen) ty = tp = 0;
+    else if (!this.dragging) { ty = clamp(ty, -Y, Y); tp = clamp(tp, -P, P); }
     const k = 1 - Math.exp(-damping * Math.min(dt, 0.1)); this.yaw += (ty - this.yaw) * k; this.pitch += (tp - this.pitch) * k;
     this.camera.rotation.set(this.basePitch + this.pitch * DEG, this.baseYaw + this.yaw * DEG, 0);
   }
@@ -60,10 +64,12 @@ export class LookAroundControls {
     const last = this._last; this._last = { side, fwd };
     if (!last || this.frozen) return;
     const step = (now, prev) => { const d = wrap180(now - prev); return Math.abs(d) > 45 ? 0 : d; };
-    const { tiltGain, yawLimit: Y, pitchLimit: P } = this.opts;
+    const { tiltRange: T, tiltRangePitch: TP, yawLimit: Y, pitchLimit: P } = this.opts;
     // Hard stop at the limits: tilting further holds the view at the edge, tilting back moves it straight away.
-    this.tilt.yaw = clamp(this.tilt.yaw + step(side, last.side) * tiltGain, -Y - this.drag.yaw, Y - this.drag.yaw);
-    this.tilt.pitch = clamp(this.tilt.pitch + step(fwd, last.fwd) * tiltGain * 0.6, -P - this.drag.pitch, P - this.drag.pitch);
+    this.phys.yaw = clamp(this.phys.yaw + step(side, last.side), -T, T);
+    this.phys.pitch = clamp(this.phys.pitch + step(fwd, last.fwd), -TP, TP);
+    this.tilt.yaw = tiltCurve(this.phys.yaw / T) * Y;
+    this.tilt.pitch = tiltCurve(this.phys.pitch / TP) * P;
   }
 }
 

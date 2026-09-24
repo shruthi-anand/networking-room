@@ -138,6 +138,9 @@ function startLookAround() {
   } else {
     hint.open();
   }
+  // Room is ready: reveal the HUD and hint together, in their final layout, and draw the hint icon in now.
+  document.body.classList.remove('is-loading');
+  hint.redraw();
   layout();
 }
 
@@ -184,7 +187,7 @@ function selectBall(ball) {
   setBioTickerHidden(true);
   titleEl.classList.remove('is-returning');
   titleEl.classList.add('is-wireframe');
-  look?.freeze(); // the room holds still while a ball is selected
+  look?.freeze({ recenter: true }); // glide back to centre, then the room holds still while a ball is selected
 }
 
 function resetSelection() {
