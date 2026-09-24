@@ -25,10 +25,10 @@ camera.position.set(0, CAM_Y, 0.4);
 camera.lookAt(0, CAM_Y, -1);
 addLights(scene, renderer);
 const wallBio = createWallBio(renderer.capabilities.getMaxAnisotropy());
-scene.add(wallBio.mesh);
+scene.add(wallBio.group);
 const messageBoard = createMessageBoard(renderer.capabilities.getMaxAnisotropy());
-scene.add(messageBoard.mesh);
-const roomMats = [...buildGridRoom(scene), wallBio.material, messageBoard.material];
+scene.add(messageBoard.group);
+const roomMats = [...buildGridRoom(scene), wallBio.material, ...messageBoard.materials];
 const roomOpacity = roomMats.map((m) => m.opacity);
 const hoop = createHoop();
 scene.add(hoop.group);
@@ -369,6 +369,9 @@ renderer.setAnimationLoop(() => {
     }
     if (thrower.active) thrower.update(now); else look?.update(dt);
     hoop.update(idleT);
+    // Wall panels float toward the viewer when faced (and settle back when not).
+    wallBio.update(camera, dt, idleT);
+    messageBoard.update(camera, dt, idleT);
   }
   renderer.render(scene, camera);
   wipe.render();

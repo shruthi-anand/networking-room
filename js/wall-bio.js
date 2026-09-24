@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ROOM, RIM_ORANGE } from './core.js';
 import { CONFIG } from './config.js';
+import { createWallCard } from './wall-card.js';
 
 // Bio aside on the right wall, centred on the wall: solid regular-weight type, with key words as heavy outlines
 // (the accent outline uses the hoop's orange). Pieces and styling come from CONFIG.BIO.aside.
@@ -77,5 +78,6 @@ export function createWallBio(anisotropy = 8) {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(PANEL.w, PANEL.h), material);
   mesh.rotation.y = -Math.PI / 2; // face into the room from the +x wall; text reads toward the front
   mesh.position.set(ROOM.x - 0.01, ROOM.y / 2, (ROOM.zBack + ROOM.zFront) / 2);
-  return { mesh, material };
+  const card = createWallCard(mesh, PANEL);
+  return { mesh, material, group: card.group, update: card.update };
 }
