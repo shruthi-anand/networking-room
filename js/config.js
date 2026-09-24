@@ -15,7 +15,23 @@ export const BIO = {
   aside: "I made this site last night so I can NET-work better. Don't be a stranger, shoot your shot.",
 };
 
-export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE, SHOT_PROMPT, SCOREBOARD_NAME, BIO };
+// Guestbook on the left wall. The wall panel itself is baked art (assets/textures/message-board.png);
+// this is the copy for the message overlay and where messages are sent.
+// FORMSPREE_FORM_ID: the ID from your Formspree form (formspree.io/f/<ID>), created under workspace.shruthi@gmail.com.
+export const FORMSPREE_FORM_ID = '';
+export const MESSAGE_FORM = {
+  title: 'Leave Shruthi a message',
+  placeholder: 'Say hi, tell her where you met, or leave your contact so she can reach back.',
+  send: 'Send',
+  sending: 'Sending…',
+  sent: 'Sent. Thank you!',
+  empty: 'Write a message first.',
+  failed: "Couldn't send that. Please try again.",
+  notSetUp: "Messages aren't switched on yet.",
+  subject: 'New message from the Networking Room',
+};
+
+export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE, SHOT_PROMPT, SCOREBOARD_NAME, BIO, FORMSPREE_FORM_ID, MESSAGE_FORM };
 
 export function getWhatsAppUrl() {
   const message = `Hey Shruthi, we met at ${CURRENT_EVENT}! My name is ___`;

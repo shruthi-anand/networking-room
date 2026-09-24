@@ -49,6 +49,26 @@
         <path class="connect-index" d="M13.5 33V15a2.5 2.5 0 0 1 5 0v10a2.2 2.2 0 0 1 4.4 0v1a2.2 2.2 0 0 1 4.4 0v5.5a8 8 0 0 1-8 8h-2a7 7 0 0 1-6-3.5l-2.6-4.6a2 2 0 0 1 3.3-2.2l1.5 2Z" />
       </svg>
     </div>
+    <div class="message-sheet" id="messageSheet" hidden role="dialog" aria-modal="true" aria-labelledby="messageTitle">
+      <form class="message-card" id="messageForm" novalidate>
+        <div class="message-card__head">
+          <h2 class="message-card__title" id="messageTitle"></h2>
+          <button class="message-card__close" id="messageClose" type="button" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <label class="sr-only" for="messageText">Your message</label>
+        <textarea class="message-card__text" id="messageText" name="message" rows="5" maxlength="2000" required></textarea>
+        <!-- Honeypot: real visitors never see or reach this; bots that fill it are dropped (Formspree _gotcha). -->
+        <div class="message-card__hp" aria-hidden="true"><label>Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" /></label></div>
+        <input type="hidden" name="_subject" />
+        <input type="hidden" name="event" />
+        <div class="message-card__foot">
+          <p class="message-card__status" id="messageStatus" role="status" aria-live="polite"></p>
+          <button class="message-card__send" id="messageSend" type="submit"></button>
+        </div>
+      </form>
+    </div>
     <div class="throw-wipe" id="throwWipe" hidden aria-hidden="true"></div>
     <script type="module" src="./js/main.js"></script>
   </body>

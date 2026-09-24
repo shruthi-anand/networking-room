@@ -7,6 +7,8 @@ import { incrementScore } from './scoreboard.js';
 import { createThrow } from './throw.js';
 import { createWallBio } from './wall-bio.js';
 import { startBioTicker, setBioTickerHidden } from './bio-ticker.js';
+import { createMessageBoard } from './message-board.js';
+import { openMessageForm, isMessageFormOpen } from './message-form.js';
 
 const canvas = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -22,7 +24,9 @@ camera.lookAt(0, CAM_Y, -1);
 addLights(scene, renderer);
 const wallBio = createWallBio(renderer.capabilities.getMaxAnisotropy());
 scene.add(wallBio.mesh);
-const roomMats = [...buildGridRoom(scene), wallBio.material];
+const messageBoard = createMessageBoard(renderer.capabilities.getMaxAnisotropy());
+scene.add(messageBoard.mesh);
+const roomMats = [...buildGridRoom(scene), wallBio.material, messageBoard.material];
 const roomOpacity = roomMats.map((m) => m.opacity);
 const hoop = createHoop();
 scene.add(hoop.group);
@@ -146,6 +150,18 @@ function startLookAround() {
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+// Guestbook panel on the left wall: a tap on it opens the message overlay.
+function pickBoard(event) {
+  pointer.x = (event.clientX / innerWidth) * 2 - 1; pointer.y = -(event.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  return raycaster.intersectObject(messageBoard.mesh).length > 0;
+}
+
+function openGuestbook() {
+  look.freeze(); // the room holds still behind the overlay
+  openMessageForm({ onClose: () => look.unfreeze() });
+}
+
 function pickBall(event) {
   pointer.x = (event.clientX / innerWidth) * 2 - 1; pointer.y = -(event.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
@@ -249,7 +265,9 @@ window.addEventListener('pageshow', (event) => { if (event.persisted && thrower.
 
 canvas.addEventListener('pointermove', (event) => {
   if (!interactive || isCoarse || throwing) return;
-  focusBall(pickBall(event));
+  const ball = pickBall(event);
+  focusBall(ball);
+  canvas.classList.toggle('is-pointing', !!ball || (!selectedBall && pickBoard(event)));
 });
 // One gesture model: press on a ball + swipe/drag up throws it; a small tap selects/deselects; anything else is free-look.
 canvas.addEventListener('pointerdown', (event) => {
@@ -269,6 +287,7 @@ window.addEventListener('pointerup', (event) => {
   if (Math.hypot(dx, dy) > TAP_SLOP) return;
   const hit = pickBall(event);
   if (selectedBall) { if (hit !== selectedBall) resetSelection(); } else if (hit) selectBall(hit);
+  else if (!isMessageFormOpen() && pickBoard(event)) openGuestbook();
 });
 window.addEventListener('pointercancel', (event) => {
   if (!press || event.pointerId !== press.id) return;
