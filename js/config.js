@@ -1,16 +1,17 @@
-export const CONFIG = {
-  currentEvent: 'the networking room',
-  linkedinUrl: 'https://www.linkedin.com/in/shruthianand-uxd/',
-  whatsappNumber: '917349079301',
-  whiteboardBio: [
-    'Product Designer',
-    'AI Builder',
-    'Studying at IDC School of Design, IIT Bombay',
-    'Licensed Architect'
-  ]
-};
+export const LINKEDIN_URL = 'https://www.linkedin.com/in/shruthianand-uxd/';
+export const WHATSAPP_NUMBER = '917349079301';
+export const CURRENT_EVENT = 'the networking room';
+export const WHITEBOARD_BIO = [
+  'Product Designer',
+  'AI Builder',
+  'Studying at IDC School of Design, IIT Bombay',
+  'Licensed Architect'
+];
+export const NOTEBOOK_MESSAGE = 'Leave a message for Shruthi';
+
+export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE };
 
 export function getWhatsAppUrl() {
-  const message = `Hey Shruthi, we met at ${CONFIG.currentEvent}. My name is ___`;
-  return `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
+  const message = `Hey Shruthi, we met at ${CURRENT_EVENT}. My name is ___`;
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
