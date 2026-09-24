@@ -30,7 +30,7 @@ const base = intros.map((_, i) => ({ pos: new THREE.Vector3(), r: 1, ph: i * 1.7
 const titleEl = document.getElementById('pageTitle');
 const hintButton = document.getElementById('lookHint');
 const shotPrompt = document.getElementById('shotPrompt');
-const swishButton = document.getElementById('swishButton');
+const connectHint = document.getElementById('connectHint');
 const isCoarse = matchMedia('(pointer: coarse)').matches;
 const motionCapable = isCoarse && typeof window.DeviceOrientationEvent !== 'undefined';
 let look = null;
@@ -44,6 +44,7 @@ let ballsLocked = false;
 let suppressCanvasClick = false;
 let selectionGlow = null;
 let selectionRings = null;
+let connectStart = null;
 
 function createGlowTexture() {
   const canvas = document.createElement('canvas');
@@ -132,7 +133,7 @@ function pickBall(event) {
   return raycaster.intersectObjects(balls)[0]?.object || null;
 }
 
-function positionSwish(ball) {
+function positionConnectHint(ball) {
   const index = balls.indexOf(ball);
   const state = ballState[index];
   const projected = ball.position.clone().project(camera);
@@ -140,10 +141,8 @@ function positionSwish(ball) {
   const y = (-projected.y + 1) * 0.5 * innerHeight;
   const distance = camera.position.distanceTo(ball.position);
   const radius = state.r * innerHeight / (2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
-  swishButton.style.left = `${x - radius}px`;
-  swishButton.style.top = `${y - radius}px`;
-  swishButton.style.width = `${radius * 2}px`;
-  swishButton.style.height = `${radius * 2}px`;
+  connectHint.style.setProperty('--ball-x', `${x}px`);
+  connectHint.style.setProperty('--ball-y', `${y - radius - 18}px`);
 }
 
 function focusBall(ball) {
@@ -164,9 +163,8 @@ function selectBall(ball) {
   focusedBall = ball;
   balls.forEach((item) => { item.userData.focused = item === ball; });
   shotPrompt.hidden = false;
-  swishButton.hidden = false;
-  swishButton.setAttribute('aria-label', `Swish with ${ball.userData.kind}`);
-  positionSwish(ball);
+  connectHint.hidden = false;
+  positionConnectHint(ball);
   titleEl.classList.add('is-wireframe');
 }
 
@@ -176,7 +174,7 @@ function resetSelection() {
   focusedBall = null;
   balls.forEach((item) => { item.userData.focused = false; });
   shotPrompt.hidden = true;
-  swishButton.hidden = true;
+  connectHint.hidden = true;
   if (selectionGlow) selectionGlow.material.opacity = 0;
   if (selectionRings) selectionRings.visible = false;
 }
@@ -196,6 +194,7 @@ canvas.addEventListener('pointerdown', (event) => {
   const ball = pickBall(event);
   if (selectedBall) {
     if (ball !== selectedBall) resetSelection();
+    else connectStart = { x: event.clientX, y: event.clientY };
     suppressCanvasClick = true;
   } else if (ball) {
     selectBall(ball); suppressCanvasClick = true;
@@ -211,7 +210,12 @@ canvas.addEventListener('click', (event) => {
     selectBall(ball);
   }
 });
-swishButton.addEventListener('click', () => activateBall(focusedBall));
+window.addEventListener('pointerup', (event) => {
+  if (!connectStart || !selectedBall) { connectStart = null; return; }
+  const distance = connectStart.y - event.clientY;
+  connectStart = null;
+  if (distance > 48) activateBall(selectedBall);
+});
 
 const clock = new THREE.Clock();
 let start = performance.now();
@@ -235,10 +239,10 @@ renderer.setAnimationLoop(() => {
         ball.position.set(state.base.x, state.base.y + Math.sin(t * 1.1 + state.ph) * state.bob, state.base.z);
         ball.rotation.set(0.1, state.yaw + t * 0.42, 0.05);
       }
-      ball.scale.setScalar(state.r * (1 + state.emphasis * (ball === selectedBall ? 0.18 : 0.1)));
+      ball.scale.setScalar(state.r * (1 + state.emphasis * (ball === selectedBall ? 0.36 : 0.1)));
       ball.material.emissive.set('#ffd27a');
       ball.material.emissiveIntensity = state.emphasis * (ball === selectedBall ? 0.25 : 0.08);
-      if (ball === selectedBall) positionSwish(ball);
+      if (ball === selectedBall) positionConnectHint(ball);
     });
     if (selectedBall && selectionGlow && selectionRings) {
       const pulse = selectedBall ? 1 + Math.sin(t * 3.2) * 0.08 : 0.9;
