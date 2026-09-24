@@ -5,6 +5,7 @@ import { createLookHint, LookAroundControls } from './look-around.js';
 import { CONFIG, getWhatsAppUrl } from './config.js';
 import { incrementScore } from './scoreboard.js';
 import { createThrow } from './throw.js';
+import { createWipe } from './wipe.js';
 import { createWallBio } from './wall-bio.js';
 import { startBioTicker, setBioTickerHidden } from './bio-ticker.js';
 import { createMessageBoard } from './message-board.js';
@@ -62,7 +63,8 @@ let press = null;
 let throwing = null;
 const SWIPE_MIN = 40, TAP_SLOP = 10;
 const THROW_COLOR = { linkedin: BRAND.linkedin.base, whatsapp: BRAND.whatsapp.base };
-const thrower = createThrow({ camera, hoop, wipeEl: document.getElementById('throwWipe') });
+const wipe = createWipe(renderer);
+const thrower = createThrow({ camera, hoop, wipe });
 
 // Selected ball: pulled toward the camera and centre, scaled up, wrapped in a game-style selection halo.
 const SELECT_PULL = 0.3, SELECT_CENTER = 0.9, SELECT_SCALE = 0.38, HALO_SHELL = 1.32;
@@ -255,11 +257,13 @@ function throwBall(ball) {
     color: THROW_COLOR[kind],
     reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
     onScore: () => incrementScore(),
+    onWipe: () => document.body.classList.add('is-wiping'), // HUD steps aside so the screen reads as solid colour
     onRoute: () => {
       track(kind === 'linkedin' ? 'linkedin_click' : 'whatsapp_click', { source: 'throw' });
       routeTo(destinationFor(ball));
     },
     onFinish: () => {
+      document.body.classList.remove('is-wiping');
       ballState[i].respawn = performance.now();
       throwing = null;
       look.resume();
@@ -357,4 +361,5 @@ renderer.setAnimationLoop(() => {
     hoop.update(idleT);
   }
   renderer.render(scene, camera);
+  wipe.render();
 });

@@ -12,7 +12,14 @@ export const SHOT_PROMPT = 'Easy Shot';
 export const SCOREBOARD_NAME = 'Shruthi Anand';
 export const BIO = {
   main: "Hi, I'm Shruthi Anand. I design products, build with AI, study interaction design at IDC IIT Bombay, and I'm a licensed architect.",
-  aside: "I made this site last night so I can NET-work better. Don't be a stranger, shoot your shot.",
+  // Right-wall text, in styled pieces: plain pieces are solid regular type, outline pieces are heavy outlines,
+  // accent uses the hoop's orange, newLine starts the piece on its own line.
+  aside: [
+    { text: 'I made this site last night so I can ' },
+    { text: 'NET-work', outline: true },
+    { text: " better. Don't be a stranger," },
+    { text: 'Shoot your shot.', outline: true, accent: true, newLine: true },
+  ],
 };
 
 // Guestbook on the left wall. The wall panel itself is baked art (assets/textures/message-board.png);

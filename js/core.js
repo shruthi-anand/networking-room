@@ -215,4 +215,4 @@ export function computeBallLayout(camera, W, H, { pad = 16, gap = 16, depth = 1.
   });
 }
 
-export { CAM_Y, ROOM, HOOP_POS };
+export { CAM_Y, ROOM, HOOP_POS, RIM_ORANGE };

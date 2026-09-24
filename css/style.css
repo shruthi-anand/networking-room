@@ -86,9 +86,9 @@ body { background: var(--ground); color: var(--ink); font-family: var(--ui); }
 }
 @media (max-width: 480px) { .bio-ticker { padding: 9px 10px 10px 12px; } .bio-ticker__text { padding-left: 8px; font-size: 12.5px; line-height: 1.36; } .scoreboard { min-width: 0; max-width: 100px; } .scoreboard__name { padding: 7px 10px 6px; font-size: 12px; line-height: 1.15; letter-spacing: 0.1em; } .scoreboard__value { font-size: 32px; } }
 @media (prefers-reduced-motion: reduce) { .scoreboard, .scoreboard__value.is-bumped, .bio-ticker, .bio-ticker__caret { animation: none; } .bio-ticker { transition: opacity 200ms ease; } }
-.throw-wipe { position: fixed; inset: 0; z-index: 30; background: var(--wipe, #000); opacity: 0; pointer-events: none; }
-.throw-wipe[hidden] { display: none; }
-.throw-wipe.is-leaving { transition: opacity 450ms ease; }
+/* During the colour wipe (drawn in the canvas) the HUD, hint and prompts step aside so the screen reads as solid colour. */
+body.is-wiping .hud, body.is-wiping .look-hint, body.is-wiping .connect-hint { opacity: 0; }
+body.is-wiping .look-hint { visibility: hidden; } /* its entrance animation holds opacity, so hide it outright */
 /* While the room loads, the HUD and look hint stay hidden so they appear once, already in their final layout. */
 .hud { transition: opacity 420ms ease; }
 .look-hint { transition: gap 420ms cubic-bezier(0.32, 0.72, 0, 1), padding 420ms cubic-bezier(0.32, 0.72, 0, 1), opacity 420ms ease 80ms; }

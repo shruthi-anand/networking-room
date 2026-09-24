@@ -24,7 +24,7 @@ const UNDER_OFFSET = new THREE.Vector3(0, -1.35, 0.3); // camera spot relative t
 const LAUNCH_RISE = 1.6; // how far above the ball the launch control point sits (sets the arc height)
 const FLIGHT_SCALE = 0.82; // ball shrinks a touch in flight so it clears the rim comfortably
 
-export function createThrow({ camera, hoop, wipeEl }) {
+export function createThrow({ camera, hoop, wipe }) {
   let run = null;
   const tmp = new THREE.Vector3(), q = new THREE.Vector3();
 
@@ -35,8 +35,8 @@ export function createThrow({ camera, hoop, wipeEl }) {
   }
 
   function drawWipe(radius, x, y, opacity) {
-    wipeEl.style.opacity = String(opacity);
-    wipeEl.style.clipPath = radius === Infinity ? 'none' : `circle(${radius}px at ${x}px ${y}px)`;
+    if (!run.wiping) { run.wiping = true; run.onWipe?.(); }
+    wipe.draw(radius, x, y, opacity);
   }
 
   // Screen-space radius of a sphere: from its angular radius, so it stays right when the ball is very close.
@@ -48,7 +48,7 @@ export function createThrow({ camera, hoop, wipeEl }) {
     return { x: (tmp.x + 1) * 0.5 * innerWidth, y: (-tmp.y + 1) * 0.5 * innerHeight, r: Math.tan(Math.min(ang, 1.5)) * focal };
   }
 
-  function start(ball, { radius, color, reduced = false, onScore, onRoute, onFinish }) {
+  function start(ball, { radius, color, reduced = false, onScore, onWipe, onRoute, onFinish }) {
     const R = hoop.rim.center.clone();
     const under = R.clone().add(UNDER_OFFSET);
     const sight = R.clone().sub(under).normalize(); // from the under-camera up through the rim
@@ -56,7 +56,7 @@ export function createThrow({ camera, hoop, wipeEl }) {
     const stop = under.clone().addScaledVector(sight, 0.22);
     const cam0 = camera.position.clone();
     run = {
-      ball, radius, reduced, onScore, onRoute, onFinish,
+      ball, radius, reduced, onScore, onWipe, onRoute, onFinish, wiping: false,
       t0: performance.now(), last: 0, scored: false, routed: false, finished: false,
       S: ball.position.clone(), scale0: ball.scale.x,
       c1: ball.position.clone().lerp(above, 0.25).setY(ball.position.y + LAUNCH_RISE),
@@ -64,33 +64,18 @@ export function createThrow({ camera, hoop, wipeEl }) {
       scoreAt: above.distanceTo(R) / above.distanceTo(stop),
       cam0, look0: cam0.clone().add(camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(3)),
     };
-    wipeEl.style.setProperty('--wipe', color);
-    wipeEl.classList.remove('is-leaving');
-    drawWipe(0, 0, 0, 0);
-    wipeEl.hidden = false;
+    wipe.setColor(color);
+    wipe.clear();
   }
 
   function score() { if (run.scored) return; run.scored = true; hoop.swish(); run.onScore?.(); }
   function route() { if (run.routed) return; run.routed = true; run.onRoute?.(); }
 
-  // Fully retire the wipe: hidden and back to black, so no brand colour lingers at the screen edges
-  // (iOS Safari tints its status/tool bars from what sits at the top and bottom of the page).
-  function clearWipe() {
-    wipeEl.hidden = true;
-    wipeEl.classList.remove('is-leaving');
-    wipeEl.style.removeProperty('--wipe');
-    wipeEl.style.clipPath = '';
-  }
-  // Coming back to the tab after routing out: tidy up straight away in case the fade-out was paused in the background.
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !run) clearWipe(); });
-
   function finish() {
     if (!run || run.finished) return;
     run.finished = true;
     camera.position.copy(run.cam0);
-    wipeEl.classList.add('is-leaving');
-    wipeEl.style.opacity = '0';
-    setTimeout(() => { if (!run || run.finished) clearWipe(); }, 460);
+    wipe.fadeOut(450);
     const done = run.onFinish;
     run = null;
     done?.();
