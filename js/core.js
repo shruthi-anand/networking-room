@@ -125,39 +125,65 @@ export function buildGridRoom(scene) {
   return [lines(grid, '#8a93a6', 0.42), lines(edges, '#c9cfdb', 0.75)];
 }
 
+const NEON_PINK = '#ff2bd6', NEON_PURPLE = '#8f4dff';
+
+function glowTexture() {
+  const [c, g] = makeCanvas(256, 256);
+  const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  grad.addColorStop(0, 'rgba(255,255,255,1)'); grad.addColorStop(0.45, 'rgba(255,255,255,0.45)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c);
+}
+
 export function createHoop() {
   const group = new THREE.Group();
-  const mats = [];
+  const mats = [], glows = [];
   const std = (o) => { const m = new THREE.MeshStandardMaterial(o); mats.push(m); return m; };
-  const [c, g] = makeCanvas(1024, 660);
-  g.fillStyle = '#f6f7f9'; g.fillRect(0, 0, 1024, 660);
-  const grad = g.createLinearGradient(0, 0, 1024, 660); grad.addColorStop(0, 'rgba(255,255,255,0.35)'); grad.addColorStop(0.5, 'rgba(255,255,255,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.05)');
-  g.fillStyle = grad; g.fillRect(0, 0, 1024, 660);
-  g.strokeStyle = '#d4471b'; g.lineWidth = 36; g.strokeRect(18, 18, 988, 624);
-  g.lineWidth = 22; g.strokeRect(512 - 150, 660 - 60 - 230, 300, 230);
-  const face = canvasTex(c);
+  // Additive neon glow layers fade with the room but keep their own base opacity.
+  const glow = (o, opacity) => { const m = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, ...o, opacity }); glows.push([m, opacity]); return m; };
+  // Board face is baked artwork (neutral concrete + spray-painted neon "Hi"); the glow map lets the paint read as fluorescent.
+  const loader = new THREE.TextureLoader();
+  const face = loader.load('./assets/textures/backboard-hi.png'); face.colorSpace = THREE.SRGBColorSpace; face.anisotropy = 8;
+  const paint = loader.load('./assets/textures/backboard-hi-glow.png'); paint.colorSpace = THREE.SRGBColorSpace;
   const W = 1.12, H = 0.72, T = 0.035;
-  const side = std({ color: '#e9ebef', roughness: 0.4 });
-  const board = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), [side, side, side, side, std({ map: face, roughness: 0.28, metalness: 0 }), std({ color: '#cfd3da', roughness: 0.6 })]);
+  const side = std({ color: '#6f6b66', roughness: 0.8 });
+  const board = new THREE.Mesh(new THREE.BoxGeometry(W, H, T), [side, side, side, side, std({ map: face, emissive: '#ffffff', emissiveMap: paint, emissiveIntensity: 0.45, roughness: 0.85, metalness: 0 }), std({ color: '#55524e', roughness: 0.8 })]);
   board.position.set(0, 0, BOARD_Z); group.add(board);
-  const steel = std({ color: '#3a3d44', roughness: 0.45, metalness: 0.7 });
+  // Mild purple backlight: a soft additive halo behind the board so its edges glow against the wall.
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(W * 2.1, H * 2.4), glow({ map: glowTexture(), color: NEON_PURPLE }, 0.55));
+  back.position.set(0, 0, BOARD_Z - T / 2 - 0.04); group.add(back);
+  const steel = std({ color: '#35353a', roughness: 0.55, metalness: 0.6 });
   const plate = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.5, 0.02), steel); plate.position.set(0, -0.12, 0.01); group.add(plate);
   const strut = (from, to, r = 0.016) => { const len = from.distanceTo(to), m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 12), steel); m.position.copy(from).add(to).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0, 1, 0), to.clone().sub(from).normalize()); group.add(m); };
   [-0.16, 0.16].forEach((x) => { strut(V(x, 0.06, 0.02), V(x, 0.06, BOARD_Z - 0.02)); strut(V(x, -0.34, 0.02), V(x, 0.02, BOARD_Z - 0.3)); });
   const backPlate = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.22, 0.02), steel); backPlate.position.set(0, 0.02, BOARD_Z - 0.03); group.add(backPlate);
-  const orange = std({ color: '#e0531f', roughness: 0.32, metalness: 0.55 });
   const RIM_R = 0.23, rimY = -H / 2 + 0.06, rimZ = BOARD_Z + T / 2 + 0.02 + RIM_R;
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(RIM_R, 0.012, 16, 64), orange); rim.rotation.x = Math.PI / 2; rim.position.set(0, rimY, rimZ); group.add(rim);
-  const mount = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.012), orange); mount.position.set(0, rimY + 0.05, BOARD_Z + T / 2 + 0.006); group.add(mount);
-  [-0.07, 0.07].forEach((x) => { const brace = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.05), orange); brace.position.set(x, rimY, BOARD_Z + T / 2 + 0.03); group.add(brace); });
-  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; const hk = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.02, 0.006), orange); hk.position.set(Math.cos(a) * RIM_R, rimY - 0.01, rimZ + Math.sin(a) * RIM_R); group.add(hk); }
+  // Neon pink rim: a bright tube, two soft additive sheaths for bloom, and a small light that tints the board and net.
+  const neon = new THREE.MeshBasicMaterial({ color: NEON_PINK, toneMapped: false, transparent: true }); mats.push(neon);
+  [[neon, 0.012], [glow({ color: NEON_PINK }, 0.32), 0.024], [glow({ color: NEON_PINK }, 0.1), 0.05]].forEach(([mat, tube]) => {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(RIM_R, tube, 16, 96), mat); ring.rotation.x = Math.PI / 2; ring.position.set(0, rimY, rimZ); group.add(ring);
+  });
+  const rimLight = new THREE.PointLight(NEON_PINK, 0.35, 1.4, 2); rimLight.position.set(0, rimY + 0.04, rimZ - 0.05); group.add(rimLight);
+  const hardware = std({ color: '#4a4a4f', roughness: 0.5, metalness: 0.6 });
+  const mount = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.012), hardware); mount.position.set(0, rimY + 0.05, BOARD_Z + T / 2 + 0.006); group.add(mount);
+  [-0.07, 0.07].forEach((x) => { const brace = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.05), hardware); brace.position.set(x, rimY, BOARD_Z + T / 2 + 0.03); group.add(brace); });
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; const hk = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.02, 0.006), hardware); hk.position.set(Math.cos(a) * RIM_R, rimY - 0.01, rimZ + Math.sin(a) * RIM_R); group.add(hk); }
   const netGeos = [], NS = 12, NL = 0.42;
   const radiusAt = (t) => RIM_R * (1 - t * 0.42) - Math.sin(t * Math.PI) * 0.01;
   for (let i = 0; i < NS; i++) for (const dir of [1, -1]) { const pts = []; for (let k = 0; k <= 8; k++) { const t = k / 8, a = ((i + dir * t * 1.6) / NS) * Math.PI * 2; pts.push(V(Math.cos(a) * radiusAt(t), -t * NL, Math.sin(a) * radiusAt(t))); } netGeos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.0032, 5)); }
   [0.5, 1].forEach((t) => { const pts = []; for (let k = 0; k <= 48; k++) { const a = (k / 48) * Math.PI * 2; pts.push(V(Math.cos(a) * radiusAt(t), -t * NL, Math.sin(a) * radiusAt(t))); } netGeos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 48, 0.003, 5, true)); });
-  const net = new THREE.Mesh(mergeGeometries(netGeos), std({ color: '#f2f2f0', roughness: 0.95 })); net.position.set(0, rimY, rimZ); group.add(net);
+  const net = new THREE.Mesh(mergeGeometries(netGeos), std({ color: '#e6e3df', roughness: 0.95 })); net.position.set(0, rimY, rimZ); group.add(net);
   group.position.copy(HOOP_POS);
-  return { group, materials: mats, update(t) { net.rotation.y = Math.sin(t * 0.7) * 0.05; net.scale.y = 1 + Math.sin(t * 1.3) * 0.01; }, setOpacity(o) { mats.forEach((m) => { m.transparent = o < 1; m.opacity = o; m.depthWrite = o > 0.5; }); } };
+  let fade = 1;
+  return {
+    group, materials: mats,
+    update(t) {
+      net.rotation.y = Math.sin(t * 0.7) * 0.05; net.scale.y = 1 + Math.sin(t * 1.3) * 0.01;
+      const hum = 0.94 + Math.sin(t * 2.1) * 0.06;
+      glows.forEach(([m, base]) => { m.opacity = base * fade * hum; }); rimLight.intensity = 0.35 * fade * hum;
+    },
+    setOpacity(o) { fade = o; mats.forEach((m) => { m.transparent = o < 1; m.opacity = o; m.depthWrite = o > 0.5; }); },
+  };
 }
 
 export function addLights(scene, renderer) {
