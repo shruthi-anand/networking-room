@@ -5,6 +5,7 @@ import { createLookHint, LookAroundControls } from './look-around.js';
 import { CONFIG, getWhatsAppUrl } from './config.js';
 import './scoreboard.js';
 import { createWallBio } from './wall-bio.js';
+import { startBioTicker, setBioTickerHidden } from './bio-ticker.js';
 
 const canvas = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -93,6 +94,7 @@ resize();
 function startLookAround() {
   if (interactive) return;
   interactive = true;
+  startBioTicker();
   intros.forEach((intro) => scene.remove(intro.group));
   balls = [createBrandBall('linkedin'), createBrandBall('whatsapp')];
   ballState = balls.map((ball, i) => ({ base: new THREE.Vector3(), yaw: 0, bob: 0, emphasis: 0, lift: 0, ph: i * 1.7 }));
@@ -172,6 +174,7 @@ function selectBall(ball) {
   shotPrompt.hidden = false;
   connectHint.hidden = false;
   positionConnectHint(ball);
+  setBioTickerHidden(true);
   titleEl.classList.remove('is-returning');
   titleEl.classList.add('is-wireframe');
 }
@@ -183,6 +186,7 @@ function resetSelection() {
   balls.forEach((item) => { item.userData.focused = false; });
   shotPrompt.hidden = true;
   connectHint.hidden = true;
+  setBioTickerHidden(false);
   // Back on the resting screen, so bring the title back.
   if (titleEl.classList.contains('is-wireframe')) {
     titleEl.classList.remove('is-wireframe');

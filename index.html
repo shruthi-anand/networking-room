@@ -28,9 +28,14 @@
       </span>
       <span class="look-hint__text"><span class="look-hint__title" id="lookHintTitle">Drag to look around</span><span class="look-hint__sub" id="lookHintSub"></span></span>
     </button>
-    <div class="scoreboard" id="scoreboard" role="status" aria-label="Score">
-      <div class="scoreboard__name" id="scoreboardName"></div>
-      <div class="scoreboard__score"><span class="scoreboard__value" id="scoreboardValue">0</span></div>
+    <div class="hud" id="hud">
+      <div class="bio-ticker" id="bioTicker" hidden>
+        <p class="bio-ticker__text"><span class="sr-only" id="bioTickerFull"></span><span aria-hidden="true"><span id="bioTickerTyped"></span><span class="bio-ticker__caret"></span><span class="bio-ticker__rest" id="bioTickerRest"></span></span></p>
+      </div>
+      <div class="scoreboard" id="scoreboard" role="status" aria-label="Score">
+        <div class="scoreboard__name" id="scoreboardName"></div>
+        <div class="scoreboard__score"><span class="scoreboard__value" id="scoreboardValue">0</span></div>
+      </div>
     </div>
     <h1 class="page-title" id="pageTitle">Let's <span class="title-solid">Net</span>-Work</h1>
     <div class="shot-prompt" id="shotPrompt" hidden>

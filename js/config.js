@@ -10,12 +10,12 @@ export const WHITEBOARD_BIO = [
 export const NOTEBOOK_MESSAGE = 'Leave a message for Shruthi';
 export const SHOT_PROMPT = 'Easy Shot';
 export const SCOREBOARD_NAME = 'Shruthi Anand';
-export const WALL_BIO = {
+export const BIO = {
   main: "Hi, I'm Shruthi Anand. I design products, build with AI, study interaction design at IDC IIT Bombay, and I'm a licensed architect.",
   aside: "I made this site last night so I can NET-work better. Don't be a stranger, shoot your shot.",
 };
 
-export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE, SHOT_PROMPT, SCOREBOARD_NAME, WALL_BIO };
+export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE, SHOT_PROMPT, SCOREBOARD_NAME, BIO };
 
 export function getWhatsAppUrl() {
   const message = `Hey Shruthi, we met at ${CURRENT_EVENT}. My name is ___`;
