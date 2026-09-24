@@ -38,6 +38,9 @@ const hintButton = document.getElementById('lookHint');
 const shotPrompt = document.getElementById('shotPrompt');
 shotPrompt.textContent = CONFIG.SHOT_PROMPT;
 const connectHint = document.getElementById('connectHint');
+// On narrow screens the look hint sits 16px below the HUD row (see style.css), so keep its height in a CSS variable.
+const hud = document.getElementById('hud');
+new ResizeObserver(() => document.documentElement.style.setProperty('--hud-h', `${hud.offsetHeight}px`)).observe(hud);
 const isCoarse = matchMedia('(pointer: coarse)').matches;
 const motionCapable = isCoarse && typeof window.DeviceOrientationEvent !== 'undefined';
 const SWIPE_ONCE_MS = 3300; // icon draw-in (900ms) + one swipe cycle (2.4s), see .swipe-finger in style.css

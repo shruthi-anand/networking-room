@@ -67,7 +67,17 @@ body { background: var(--ground); color: var(--ink); font-family: var(--ui); }
 .scoreboard__value.is-bumped { animation: score-bump 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2); }
 @keyframes scoreboard-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 @keyframes score-bump { 0% { transform: scale(1); } 35% { transform: scale(1.22); text-shadow: 0 0 16px rgba(255, 255, 255, 0.6); } 100% { transform: scale(1); } }
-@media (max-width: 480px) { .hud { left: calc(env(safe-area-inset-left, 0px) + 16px); } .bio-ticker { flex: 1; min-width: 0; width: auto; margin-top: 48px; padding: 9px 10px 10px 12px; } .bio-ticker__text { padding-left: 8px; font-size: 12.5px; line-height: 1.36; } .scoreboard { min-width: 0; max-width: 100px; } .scoreboard__name { padding: 7px 10px 6px; font-size: 12px; line-height: 1.15; letter-spacing: 0.1em; } .scoreboard__value { font-size: 32px; } }
+/* Narrow screens (the expanded look hint would not fit beside the bio + scoreboard with a 16px gap): the bio and scoreboard
+   share one full-width row at the same height, joined into a single housing, and the look hint drops 16px below that row. */
+@media (max-width: 788px) {
+  .hud { left: calc(env(safe-area-inset-left, 0px) + 16px); align-items: stretch; }
+  .bio-ticker { flex: 1; min-width: 0; width: auto; display: flex; align-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+  .scoreboard { display: flex; flex-direction: column; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); transition: border-radius 320ms ease, border-color 320ms ease; }
+  .scoreboard__score { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .bio-ticker:not([hidden]):not(.is-hidden) + .scoreboard { border-left-color: rgba(255, 255, 255, 0.12); border-top-left-radius: 0; border-bottom-left-radius: 0; }
+  .look-hint { top: calc(env(safe-area-inset-top, 0px) + 16px + var(--hud-h, 0px) + 16px); }
+}
+@media (max-width: 480px) { .bio-ticker { padding: 9px 10px 10px 12px; } .bio-ticker__text { padding-left: 8px; font-size: 12.5px; line-height: 1.36; } .scoreboard { min-width: 0; max-width: 100px; } .scoreboard__name { padding: 7px 10px 6px; font-size: 12px; line-height: 1.15; letter-spacing: 0.1em; } .scoreboard__value { font-size: 32px; } }
 @media (prefers-reduced-motion: reduce) { .scoreboard, .scoreboard__value.is-bumped, .bio-ticker, .bio-ticker__caret { animation: none; } .bio-ticker { transition: opacity 200ms ease; } }
 .throw-wipe { position: fixed; inset: 0; z-index: 30; background: var(--wipe, #000); opacity: 0; pointer-events: none; }
 .throw-wipe[hidden] { display: none; }
