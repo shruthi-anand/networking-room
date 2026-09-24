@@ -8,8 +8,9 @@ export const WHITEBOARD_BIO = [
   'Licensed Architect'
 ];
 export const NOTEBOOK_MESSAGE = 'Leave a message for Shruthi';
+export const SHOT_PROMPT = 'Easy Shot';
 
-export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE };
+export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE, SHOT_PROMPT };
 
 export function getWhatsAppUrl() {
   const message = `Hey Shruthi, we met at ${CURRENT_EVENT}. My name is ___`;

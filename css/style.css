@@ -28,15 +28,18 @@ body { background: var(--ground); color: var(--ink); font-family: var(--ui); }
 .page-title { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 9vh); z-index: 3; margin: 0; text-align: center; pointer-events: none; font: 900 clamp(20px, 4vw, 34px)/0.95 var(--display); letter-spacing: 0.02em; color: var(--ink); text-shadow: 0 0 18px rgba(255, 255, 255, 0.16); opacity: 0; transform: translateY(14px); filter: blur(6px); transition: opacity 700ms ease, transform 900ms cubic-bezier(0.2, 0.9, 0.25, 1), filter 700ms ease; }
 .page-title.is-in { opacity: 1; transform: none; filter: blur(0); }
 .page-title.is-wireframe { animation: title-wireframe 1100ms cubic-bezier(0.22, 0.8, 0.28, 1) forwards; }
+.page-title.is-returning { animation: title-return 900ms cubic-bezier(0.22, 0.8, 0.28, 1) both; }
 @keyframes title-wireframe { 0%, 28% { color: var(--ink); -webkit-text-stroke: 0; opacity: 1; } 58% { color: transparent; -webkit-text-stroke: 1px var(--ink); opacity: 0.85; transform: scale(1.04); filter: blur(0); } 100% { color: transparent; -webkit-text-stroke: 0; opacity: 0; transform: scale(1.12); filter: blur(8px); } }
-.shot-prompt { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem); z-index: 5; transform: translateX(-50%); padding: 0.6rem 0.9rem; border: 1px solid var(--glass-edge); border-radius: 999px; background: var(--glass); backdrop-filter: blur(16px); color: var(--ink); font: 500 13px/1.2 var(--ui); white-space: nowrap; pointer-events: none; animation: prompt-in 260ms ease both; }
-.shot-prompt strong { font-weight: 800; }
-@keyframes prompt-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
-.connect-hint { position: fixed; left: var(--ball-x); top: var(--ball-y); z-index: 6; display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.7rem 0.55rem 0.85rem; border: 1px solid var(--glass-edge); border-radius: 999px; background: var(--glass); backdrop-filter: blur(16px); color: var(--ink); font: 700 12px/1 var(--display); letter-spacing: 0.03em; white-space: nowrap; transform: translate(-50%, -100%); animation: prompt-in 260ms ease both; }
+@keyframes title-return { 0% { color: transparent; -webkit-text-stroke: 1px var(--ink); opacity: 0; transform: scale(1.08); filter: blur(6px); } 55% { color: transparent; -webkit-text-stroke: 1px var(--ink); opacity: 0.9; transform: scale(1); filter: blur(0); } 100% { color: var(--ink); -webkit-text-stroke: 0; opacity: 1; transform: none; filter: blur(0); } }
+.shot-prompt { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 9vh); z-index: 5; margin: 0; text-align: center; pointer-events: none; font: 900 clamp(20px, 4vw, 34px)/0.95 var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: transparent; -webkit-text-stroke: 1px var(--ink); animation: shot-in 700ms cubic-bezier(0.2, 0.9, 0.25, 1) 380ms both; }
+@keyframes shot-in { from { opacity: 0; transform: scale(0.92); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+.connect-hint { position: fixed; left: var(--ball-x); top: var(--ball-y); z-index: 6; display: flex; align-items: center; gap: 0.5rem; color: var(--ink); font: 700 12px/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7); filter: drop-shadow(0 1px 6px rgba(0, 0, 0, 0.6)); pointer-events: none; transform: translate(-50%, -100%); animation: connect-in 260ms ease both; }
+.connect-hint[hidden] { display: none; }
+@keyframes connect-in { from { opacity: 0; } to { opacity: 1; } }
 .connect-hint svg { width: 24px; height: 36px; overflow: visible; }
 .connect-arrow, .connect-finger { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
-.connect-arrow { stroke-width: 1.5; opacity: 0.55; animation: connect-arrow 1.5s ease-in-out infinite; }
-.connect-finger { stroke-width: 1.7; animation: connect-finger 1.5s ease-in-out infinite; }
-@keyframes connect-arrow { 0%, 100% { transform: translateY(5px); opacity: 0.35; } 50% { transform: translateY(-4px); opacity: 1; } }
-@keyframes connect-finger { 0%, 100% { transform: translateY(5px); } 50% { transform: translateY(-4px); } }
-@media (prefers-reduced-motion: reduce) { .look-hint, .tilt-phone, .swipe-finger, .pan-hand, .connect-arrow, .connect-finger { animation: none; } .look-hint.is-drawing .draw { animation: none; stroke-dashoffset: 0; } .page-title { transform: none; filter: none; transition: opacity 400ms ease; } }
+.connect-arrow { stroke-width: 1.5; animation: connect-arrow 1s ease-out infinite; }
+.connect-finger { stroke-width: 1.7; animation: connect-finger 1s cubic-bezier(0.45, 0, 0.3, 1) infinite; }
+@keyframes connect-arrow { 0% { transform: translateY(6px); opacity: 0; } 30% { opacity: 0.8; } 75%, 100% { transform: translateY(-8px); opacity: 0; } }
+@keyframes connect-finger { 0% { transform: translateY(8px); opacity: 0; } 15% { opacity: 1; } 65% { transform: translateY(-8px); opacity: 1; } 85%, 100% { transform: translateY(-10px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .look-hint, .tilt-phone, .swipe-finger, .pan-hand, .connect-arrow, .connect-finger { animation: none; } .look-hint.is-drawing .draw { animation: none; stroke-dashoffset: 0; } .page-title { transform: none; filter: none; transition: opacity 400ms ease; } .shot-prompt { animation-duration: 1ms; } }

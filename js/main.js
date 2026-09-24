@@ -30,6 +30,7 @@ const base = intros.map((_, i) => ({ pos: new THREE.Vector3(), r: 1, ph: i * 1.7
 const titleEl = document.getElementById('pageTitle');
 const hintButton = document.getElementById('lookHint');
 const shotPrompt = document.getElementById('shotPrompt');
+shotPrompt.textContent = CONFIG.SHOT_PROMPT;
 const connectHint = document.getElementById('connectHint');
 const isCoarse = matchMedia('(pointer: coarse)').matches;
 const motionCapable = isCoarse && typeof window.DeviceOrientationEvent !== 'undefined';
@@ -42,22 +43,30 @@ let focusedBall = null;
 let selectedBall = null;
 let ballsLocked = false;
 let suppressCanvasClick = false;
-let selectionGlow = null;
-let selectionRings = null;
+let haloBall = null;
 let connectStart = null;
 
-function createGlowTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 128; canvas.height = 128;
-  const context = canvas.getContext('2d');
-  const gradient = context.createRadialGradient(64, 64, 2, 64, 64, 64);
-  gradient.addColorStop(0, 'rgba(255,255,255,0.9)');
-  gradient.addColorStop(0.28, 'rgba(255,255,255,0.45)');
-  gradient.addColorStop(1, 'rgba(255,255,255,0)');
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, 128, 128);
-  return new THREE.CanvasTexture(canvas);
-}
+// Selected ball: pulled toward the camera and centre, scaled up, wrapped in a game-style selection halo.
+const SELECT_PULL = 0.3, SELECT_CENTER = 0.9, SELECT_SCALE = 0.38, HALO_SHELL = 1.32;
+const HALO_COLOR = { linkedin: '#8fc0ff', whatsapp: '#8dffc0' };
+const selectTarget = new THREE.Vector3();
+// Back-face shell around the ball. vRho is the distance from the ball centre to the view ray in ball radii,
+// so rho = 1 is exactly the ball's silhouette: a crisp bright edge there, fading out to the shell.
+const halo = new THREE.Mesh(
+  new THREE.SphereGeometry(1, 64, 32),
+  new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: new THREE.Color('#ffffff') }, uShell: { value: HALO_SHELL }, uStrength: { value: 0 } },
+    vertexShader: `uniform float uShell; varying float vRho;
+      void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); float d = dot(normalize(normalMatrix * normal), normalize(-mv.xyz));
+        vRho = uShell * sqrt(max(0.0, 1.0 - d * d)); gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform vec3 uColor; uniform float uShell, uStrength; varying float vRho;
+      void main() { float t = clamp((vRho - 1.0) / (uShell - 1.0), 0.0, 1.0);
+        float line = 1.0 - smoothstep(0.0, 0.07, t); float soft = pow(1.0 - t, 2.6);
+        gl_FragColor = vec4(mix(uColor, vec3(1.0), line * 0.75) * (soft * 0.8 + line) * uStrength, 1.0); }`,
+    side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  })
+);
+halo.visible = false;
 
 function layout() {
   computeBallLayout(camera, window.innerWidth, window.innerHeight).forEach(({ pos, r }, i) => {
@@ -81,28 +90,9 @@ function startLookAround() {
   interactive = true;
   intros.forEach((intro) => scene.remove(intro.group));
   balls = [createBrandBall('linkedin'), createBrandBall('whatsapp')];
-  ballState = balls.map((ball, i) => ({ base: new THREE.Vector3(), yaw: 0, bob: 0, emphasis: 0, ph: i * 1.7 }));
+  ballState = balls.map((ball, i) => ({ base: new THREE.Vector3(), yaw: 0, bob: 0, emphasis: 0, lift: 0, ph: i * 1.7 }));
   balls.forEach((ball) => scene.add(ball));
-  selectionGlow = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: createGlowTexture(),
-    color: '#ffd27a',
-    transparent: true,
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  }));
-  scene.add(selectionGlow);
-  selectionRings = new THREE.Group();
-  [0.52, 0.7, 0.88].forEach((radius, index) => {
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(radius, 0.018, 8, 64),
-      new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0, depthWrite: false })
-    );
-    ring.rotation.x = Math.PI / 2;
-    ring.userData.phase = index * 0.7;
-    selectionRings.add(ring);
-  });
-  scene.add(selectionRings);
+  scene.add(halo);
   look = new LookAroundControls(camera, canvas, { yawLimit: 18, pitchLimit: 8 });
   const hint = createLookHint(hintButton, {
     mode: motionCapable ? 'tilt' : isCoarse ? 'swipe' : 'drag',
@@ -134,13 +124,11 @@ function pickBall(event) {
 }
 
 function positionConnectHint(ball) {
-  const index = balls.indexOf(ball);
-  const state = ballState[index];
   const projected = ball.position.clone().project(camera);
   const x = (projected.x + 1) * 0.5 * innerWidth;
   const y = (-projected.y + 1) * 0.5 * innerHeight;
   const distance = camera.position.distanceTo(ball.position);
-  const radius = state.r * innerHeight / (2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+  const radius = ball.scale.x * innerHeight / (2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   connectHint.style.setProperty('--ball-x', `${x}px`);
   connectHint.style.setProperty('--ball-y', `${y - radius - 18}px`);
 }
@@ -160,11 +148,14 @@ function selectBall(ball) {
   if (!ball || ballsLocked) return;
   ballsLocked = true;
   selectedBall = ball;
+  haloBall = ball;
+  halo.material.uniforms.uColor.value.set(HALO_COLOR[ball.userData.kind]);
   focusedBall = ball;
   balls.forEach((item) => { item.userData.focused = item === ball; });
   shotPrompt.hidden = false;
   connectHint.hidden = false;
   positionConnectHint(ball);
+  titleEl.classList.remove('is-returning');
   titleEl.classList.add('is-wireframe');
 }
 
@@ -175,14 +166,19 @@ function resetSelection() {
   balls.forEach((item) => { item.userData.focused = false; });
   shotPrompt.hidden = true;
   connectHint.hidden = true;
-  if (selectionGlow) selectionGlow.material.opacity = 0;
-  if (selectionRings) selectionRings.visible = false;
+  // Back on the resting screen, so bring the title back.
+  if (titleEl.classList.contains('is-wireframe')) {
+    titleEl.classList.remove('is-wireframe');
+    void titleEl.offsetWidth;
+    titleEl.classList.add('is-returning');
+  }
 }
 
 function activateBall(ball) {
   if (!ball) return;
   const url = ball.userData.kind === 'linkedin' ? CONFIG.LINKEDIN_URL : getWhatsAppUrl();
   window.open(url, '_blank', 'noopener');
+  resetSelection();
 }
 
 canvas.addEventListener('pointermove', (event) => {
@@ -234,37 +230,25 @@ renderer.setAnimationLoop(() => {
   } else {
     balls.forEach((ball, i) => {
       const state = ballState[i];
-      state.emphasis += ((ball.userData.focused ? 1 : 0) - state.emphasis) * 0.16;
-      if (ball !== selectedBall) {
-        ball.position.set(state.base.x, state.base.y + Math.sin(t * 1.1 + state.ph) * state.bob, state.base.z);
-        ball.rotation.set(0.1, state.yaw + t * 0.42, 0.05);
+      const selected = ball === selectedBall;
+      state.emphasis += ((ball.userData.focused && !selected ? 1 : 0) - state.emphasis) * 0.16;
+      state.lift += ((selected ? 1 : 0) - state.lift) * 0.12;
+      ball.position.set(state.base.x, state.base.y + Math.sin(t * 1.1 + state.ph) * state.bob * (1 - state.lift * 0.6), state.base.z);
+      if (state.lift > 0.001) {
+        selectTarget.copy(ball.position).lerp(camera.position, SELECT_PULL);
+        selectTarget.x = THREE.MathUtils.lerp(state.base.x, camera.position.x, SELECT_CENTER);
+        ball.position.lerp(selectTarget, state.lift);
       }
-      ball.scale.setScalar(state.r * (1 + state.emphasis * (ball === selectedBall ? 0.36 : 0.1)));
-      ball.material.emissive.set('#ffd27a');
-      ball.material.emissiveIntensity = state.emphasis * (ball === selectedBall ? 0.25 : 0.08);
-      if (ball === selectedBall) positionConnectHint(ball);
+      ball.rotation.set(0.1, state.yaw + t * 0.42, 0.05);
+      ball.scale.setScalar(state.r * (1 + state.emphasis * 0.1 + state.lift * SELECT_SCALE));
+      if (selected) positionConnectHint(ball);
     });
-    if (selectedBall && selectionGlow && selectionRings) {
-      const pulse = selectedBall ? 1 + Math.sin(t * 3.2) * 0.08 : 0.9;
-      const selectedState = ballState[balls.indexOf(selectedBall)];
-      const selectedColor = selectedBall.userData.kind === 'linkedin' ? '#4a9dff' : '#59f28a';
-      selectionGlow.material.color.set(selectedColor);
-      selectionGlow.material.opacity = 0.58 * pulse;
-      selectionGlow.position.set(selectedBall.position.x, selectedBall.position.y, selectedBall.position.z - selectedState.r * 0.48);
-      selectionGlow.scale.setScalar(selectedState.r * 2.4 * pulse);
-      selectionRings.visible = true;
-      selectionRings.position.set(selectedBall.position.x, selectedBall.position.y - selectedState.r * 1.12, selectedBall.position.z);
-      selectionRings.scale.setScalar(selectedState.r * 0.72 * pulse);
-      selectionRings.children.forEach((ring) => {
-        ring.material.color.set(selectedColor);
-        ring.material.opacity = 0.52 * (0.8 + Math.sin(t * 3.2 + ring.userData.phase) * 0.2);
-      });
-    } else {
-      if (selectionGlow) selectionGlow.material.opacity = 0;
-      if (selectionRings) selectionRings.visible = false;
-    }
-    if (!selectedBall && selectionRings) {
-      selectionRings.visible = false;
+    const haloLift = haloBall ? ballState[balls.indexOf(haloBall)].lift : 0;
+    halo.visible = haloLift > 0.01;
+    if (halo.visible) {
+      halo.position.copy(haloBall.position);
+      halo.scale.setScalar(haloBall.scale.x * HALO_SHELL);
+      halo.material.uniforms.uStrength.value = haloLift * (0.85 + Math.sin(t * 4) * 0.15);
     }
     look?.update(clock.getDelta()); hoop.update(t);
   }
