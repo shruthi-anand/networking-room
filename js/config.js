@@ -17,15 +17,22 @@ export const BIO = {
 
 // Guestbook on the left wall. The wall panel itself is baked art (assets/textures/message-board.png);
 // this is the copy for the message overlay and where messages are sent.
-// FORMSPREE_FORM_ID: the ID from your Formspree form (formspree.io/f/<ID>), created under workspace.shruthi@gmail.com.
-export const FORMSPREE_FORM_ID = '';
+// FORMSPREE_FORM_ID: the ID from the Formspree form (formspree.io/f/<ID>); messages are delivered to shruthianand0603@gmail.com.
+export const FORMSPREE_FORM_ID = 'xwlpqrqo';
 export const MESSAGE_FORM = {
-  title: 'Leave Shruthi a message',
-  placeholder: 'Say hi, tell her where you met, or leave your contact so she can reach back.',
+  title: 'Leave a Message',
+  nameLabel: 'Name',
+  namePlaceholder: 'Your name',
+  contactLabel: 'Email or LinkedIn',
+  contactPlaceholder: 'you@email.com or linkedin.com/in/you',
+  messageLabel: 'Message (optional)',
+  messagePlaceholder: 'Say hi, or tell her where you met.',
   send: 'Send',
   sending: 'Sending…',
   sent: 'Sent. Thank you!',
-  empty: 'Write a message first.',
+  needName: 'Add your name.',
+  needContact: 'Add your email or LinkedIn.',
+  badContact: "That doesn't look like an email or a LinkedIn link.",
   failed: "Couldn't send that. Please try again.",
   notSetUp: "Messages aren't switched on yet.",
   subject: 'New message from the Networking Room',

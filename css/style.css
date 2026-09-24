@@ -105,9 +105,13 @@ body.is-loading .hud, body.is-loading .look-hint { opacity: 0; visibility: hidde
 .message-card__close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .message-card__close:hover { background: rgba(255, 255, 255, 0.1); }
 .message-card__close:focus-visible, .message-card__send:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.message-card__text { display: block; width: calc(100% - 32px); min-height: 132px; margin: 16px; padding: 12px 14px; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px; background: rgba(0, 0, 0, 0.28); color: var(--ink); font: 500 16px/1.45 var(--score-font); resize: vertical; }
-.message-card__text::placeholder { color: var(--ink-dim); }
-.message-card__text:focus { outline: none; border-color: rgba(255, 255, 255, 0.55); }
+.message-card__fields { display: grid; gap: 12px; padding: 16px 16px 14px; }
+.message-card__label { display: block; margin-bottom: 6px; color: var(--ink-dim); font-weight: 800; font-size: 11px; line-height: 1.2; letter-spacing: 0.12em; text-transform: uppercase; }
+.message-card__input { display: block; width: 100%; padding: 11px 13px; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px; background: rgba(0, 0, 0, 0.28); color: var(--ink); font: 500 16px/1.4 var(--score-font); }
+.message-card__text { min-height: 84px; resize: vertical; }
+.message-card__input::placeholder { color: rgba(255, 246, 236, 0.42); }
+.message-card__input:focus { outline: none; border-color: rgba(255, 255, 255, 0.55); }
+.message-card__input[aria-invalid='true'] { border-color: #ffb4a8; }
 .message-card__hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .message-card__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px 16px; }
 .message-card__status { margin: 0; min-height: 1.3em; font-size: 13px; color: var(--ink-dim); }

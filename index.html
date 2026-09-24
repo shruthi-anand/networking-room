@@ -57,11 +57,24 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
         </div>
-        <label class="sr-only" for="messageText">Your message</label>
-        <textarea class="message-card__text" id="messageText" name="message" rows="5" maxlength="2000" required></textarea>
+        <div class="message-card__fields">
+          <div class="message-card__field">
+            <label class="message-card__label" for="messageName" id="messageNameLabel"></label>
+            <input class="message-card__input" id="messageName" name="name" type="text" autocomplete="name" maxlength="120" required aria-describedby="messageStatus" />
+          </div>
+          <div class="message-card__field">
+            <label class="message-card__label" for="messageContact" id="messageContactLabel"></label>
+            <input class="message-card__input" id="messageContact" name="contact" type="text" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="200" required aria-describedby="messageStatus" />
+          </div>
+          <div class="message-card__field">
+            <label class="message-card__label" for="messageText" id="messageTextLabel"></label>
+            <textarea class="message-card__input message-card__text" id="messageText" name="message" rows="3" maxlength="2000"></textarea>
+          </div>
+        </div>
         <!-- Honeypot: real visitors never see or reach this; bots that fill it are dropped (Formspree _gotcha). -->
         <div class="message-card__hp" aria-hidden="true"><label>Leave this empty <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" /></label></div>
         <input type="hidden" name="_subject" />
+        <input type="hidden" name="_replyto" />
         <input type="hidden" name="event" />
         <div class="message-card__foot">
           <p class="message-card__status" id="messageStatus" role="status" aria-live="polite"></p>
