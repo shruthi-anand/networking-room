@@ -28,7 +28,7 @@ const wallBio = createWallBio(renderer.capabilities.getMaxAnisotropy());
 scene.add(wallBio.group);
 const messageBoard = createMessageBoard(renderer.capabilities.getMaxAnisotropy());
 scene.add(messageBoard.group);
-const roomMats = [...buildGridRoom(scene), wallBio.material, ...messageBoard.materials];
+const roomMats = [...buildGridRoom(scene), ...wallBio.materials, ...messageBoard.materials];
 const roomOpacity = roomMats.map((m) => m.opacity);
 const hoop = createHoop();
 scene.add(hoop.group);
