@@ -12,9 +12,11 @@ scene.background = new THREE.Color('#d9e2df');
 
 const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 100);
 camera.position.set(0, 2.7, 8.8);
+camera.lookAt(0, 2.5, 0);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 app.append(renderer.domElement);
 const controls = createCameraControls(camera, renderer.domElement);
