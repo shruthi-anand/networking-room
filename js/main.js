@@ -105,13 +105,17 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-function startLookAround() {
+// handoff: per intro ball, its accumulated spin and how far its bob has eased in, at time t0 (so nothing jumps).
+function startLookAround(t0, handoff) {
   if (interactive) return;
   interactive = true;
   startBioTicker();
   intros.forEach((intro) => scene.remove(intro.group));
   balls = [createBrandBall('linkedin'), createBrandBall('whatsapp')];
-  ballState = balls.map((ball, i) => ({ base: new THREE.Vector3(), yaw: 0, bob: 0, emphasis: 0, lift: 0, ph: i * 1.7 }));
+  ballState = balls.map((ball, i) => ({
+    base: new THREE.Vector3(), yaw: 0, bob: 0, emphasis: 0, lift: 0, ph: i * 1.7,
+    spin0: handoff[i].spin - t0 * 0.42, settle0: handoff[i].settle, t0,
+  }));
   balls.forEach((ball) => scene.add(ball));
   scene.add(halo);
   look = new LookAroundControls(camera, canvas, { yawLimit: 110, pitchLimit: 12 });
@@ -315,13 +319,18 @@ renderer.setAnimationLoop(() => {
   const t = ((performance.now() - start) / 1000) * (matchMedia('(prefers-reduced-motion: reduce)').matches ? 3 : 1);
   let room = 0, allResolved = true;
   if (!interactive) {
+    const settles = [];
     intros.forEach((intro, i) => {
       const s = base[i]; intro.group.position.set(s.pos.x, s.pos.y, s.pos.z);
-      const progress = intro.update(t); intro.group.position.y = s.pos.y + Math.sin(t * 1.1 + s.ph) * s.r * 0.12 * progress.settle;
+      const progress = intro.update(t); settles[i] = progress.settle; intro.group.position.y = s.pos.y + Math.sin(t * 1.1 + s.ph) * s.r * 0.12 * progress.settle;
       room = Math.max(room, progress.room); allResolved = allResolved && progress.resolved;
     });
     roomMats.forEach((mat, i) => { mat.opacity = roomOpacity[i] * room; }); hoop.setOpacity(room); hoop.update(t);
-    if (allResolved && !titleShown) { titleShown = true; titleEl.classList.add('is-in'); startLookAround(); }
+    // Hand over only once the room has fully faded in and the fill pop is over, carrying spin and bob across.
+    if (allResolved && room >= 1 && !titleShown) {
+      titleShown = true; titleEl.classList.add('is-in');
+      startLookAround(t, intros.map((intro, i) => ({ spin: intro.spin, settle: settles[i] })));
+    }
   } else {
     const now = performance.now();
     const dt = clock.getDelta();
@@ -333,13 +342,14 @@ renderer.setAnimationLoop(() => {
       const selected = ball === selectedBall;
       state.emphasis += ((ball.userData.focused && !selected ? 1 : 0) - state.emphasis) * 0.16;
       state.lift += ((selected ? 1 : 0) - state.lift) * 0.12;
-      ball.position.set(state.base.x, state.base.y + Math.sin(idleT * 1.1 + state.ph) * state.bob * (1 - state.lift * 0.6), state.base.z);
+      const bobIn = Math.min(1, state.settle0 + (idleT - state.t0) / 1.2); // continues the load-in's bob ease
+      ball.position.set(state.base.x, state.base.y + Math.sin(idleT * 1.1 + state.ph) * state.bob * bobIn * (1 - state.lift * 0.6), state.base.z);
       if (state.lift > 0.001) {
         selectTarget.copy(ball.position).lerp(camera.position, SELECT_PULL);
         selectTarget.x = THREE.MathUtils.lerp(state.base.x, camera.position.x, SELECT_CENTER);
         ball.position.lerp(selectTarget, state.lift);
       }
-      ball.rotation.set(0.1, state.yaw + idleT * 0.42, 0.05);
+      ball.rotation.set(0.1, state.yaw + idleT * 0.42 + state.spin0, 0.05);
       // After a throw the ball pops back into its spot (same overshoot feel as the load-in pop).
       let pop = 1;
       if (state.respawn) {

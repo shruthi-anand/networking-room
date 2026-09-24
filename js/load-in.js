@@ -68,5 +68,5 @@ export function createBasketballLoadIn({
     return { fill: f, room: easeInOut(prog(t, roomStart, roomDur)), settle: prog(t, fillStart + fillDur, 1.2), resolved };
   }
   function reset() { lastT = 0; spin = 0; resolved = false; update(0); }
-  return { group, update, reset, setYaw(v) { yaw = v; } };
+  return { group, update, reset, setYaw(v) { yaw = v; }, get spin() { return spin; } };
 }
