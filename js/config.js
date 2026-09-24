@@ -9,7 +9,7 @@ export const WHITEBOARD_BIO = [
 ];
 export const NOTEBOOK_MESSAGE = 'Leave a message for Shruthi';
 export const SHOT_PROMPT = 'Easy Shot';
-export const SCOREBOARD_NAME = 'Shruthi';
+export const SCOREBOARD_NAME = 'Shruthi Anand';
 
 export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE, SHOT_PROMPT, SCOREBOARD_NAME };
 
