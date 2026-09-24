@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import { ROOM } from './core.js';
 import { CONFIG } from './config.js';
 
-// Bio aside on the right wall: neon-purple outline type, centred on the wall.
+// Bio aside on the right wall: plain white outline (wireframe) type, centred on the wall.
 // Text is config-driven and drawn at runtime (see CLAUDE.md). The intro paragraph lives in the HUD (bio-ticker.js).
 const PANEL = { w: 1.9, h: 1.6 };
 const PX = 2048, PY = Math.round(PX * (PANEL.h / PANEL.w));
 const FONT = "'Bricolage Grotesque', 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif";
 const TYPE = { weight: 800, size: 158, lineHeight: 1.16, stroke: 7 };
-const NEON = { core: '#e3c4ff', tube: '#b77bff', glow: '#8f4dff' };
+const OUTLINE = '#fff6ec';
 const PAD = 120;
 
 function wrap(g, text, maxWidth) {
@@ -37,15 +37,9 @@ function draw(canvas) {
   const lines = wrap(g, CONFIG.BIO.aside, PX - PAD * 2);
   const step = TYPE.size * TYPE.lineHeight;
   const top = PY / 2 - ((lines.length - 1) * step) / 2;
-  // Neon tube: a wide soft glow pass, the coloured tube, then a thin bright core.
-  const pass = (color, width, blur) => {
-    g.strokeStyle = color; g.lineWidth = width; g.shadowColor = NEON.glow; g.shadowBlur = blur;
-    lines.forEach((line, i) => g.strokeText(line, PX / 2, top + i * step));
-  };
-  pass(NEON.glow, TYPE.stroke * 2.6, 36);
-  pass(NEON.tube, TYPE.stroke, 14);
-  pass(NEON.core, TYPE.stroke * 0.35, 0);
-  g.shadowBlur = 0;
+  // Single clean white outline, no glow: stays crisp and readable on small screens.
+  g.strokeStyle = OUTLINE; g.lineWidth = TYPE.stroke;
+  lines.forEach((line, i) => g.strokeText(line, PX / 2, top + i * step));
 }
 
 export function createWallBio(anisotropy = 8) {

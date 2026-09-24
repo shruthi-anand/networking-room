@@ -73,13 +73,24 @@ export function createThrow({ camera, hoop, wipeEl }) {
   function score() { if (run.scored) return; run.scored = true; hoop.swish(); run.onScore?.(); }
   function route() { if (run.routed) return; run.routed = true; run.onRoute?.(); }
 
+  // Fully retire the wipe: hidden and back to black, so no brand colour lingers at the screen edges
+  // (iOS Safari tints its status/tool bars from what sits at the top and bottom of the page).
+  function clearWipe() {
+    wipeEl.hidden = true;
+    wipeEl.classList.remove('is-leaving');
+    wipeEl.style.removeProperty('--wipe');
+    wipeEl.style.clipPath = '';
+  }
+  // Coming back to the tab after routing out: tidy up straight away in case the fade-out was paused in the background.
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !run) clearWipe(); });
+
   function finish() {
     if (!run || run.finished) return;
     run.finished = true;
     camera.position.copy(run.cam0);
     wipeEl.classList.add('is-leaving');
     wipeEl.style.opacity = '0';
-    setTimeout(() => { if (!run || run.finished) { wipeEl.hidden = true; } }, 460);
+    setTimeout(() => { if (!run || run.finished) clearWipe(); }, 460);
     const done = run.onFinish;
     run = null;
     done?.();
