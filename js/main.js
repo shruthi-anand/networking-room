@@ -43,6 +43,9 @@ const titleEl = document.getElementById('pageTitle');
 const hintButton = document.getElementById('lookHint');
 const shotPrompt = document.getElementById('shotPrompt');
 shotPrompt.textContent = CONFIG.SHOT_PROMPT;
+const shootNudge = document.getElementById('shootNudge');
+shootNudge.firstElementChild.textContent = CONFIG.SHOOT_NUDGE;
+let hasShot = false; // the nudge retires after the first throw of this page load
 const connectHint = document.getElementById('connectHint');
 // On narrow screens the look hint sits 16px below the HUD row (see style.css), so keep its height in a CSS variable.
 const hud = document.getElementById('hud');
@@ -248,6 +251,7 @@ function throwBall(ball) {
   if (throwing || !ball) return;
   const i = balls.indexOf(ball), kind = ball.userData.kind;
   throwing = ball;
+  hasShot = true;
   // Clear selection visuals; the resting UI stays hidden for the whole sequence.
   selectedBall = null; focusedBall = null; haloBall = null; ballsLocked = true;
   balls.forEach((item) => { item.userData.focused = false; });
@@ -369,6 +373,9 @@ renderer.setAnimationLoop(() => {
     }
     if (thrower.active) thrower.update(now); else look?.update(dt);
     hoop.update(idleT);
+    // Nudge to shoot: only when looking at (or near) the balls, nothing selected or in flight, and no throw yet.
+    const centred = !!look && Math.abs(look.yaw) < 14 && Math.abs(look.pitch) < 8;
+    shootNudge.classList.toggle('is-shown', !hasShot && !selectedBall && !throwing && centred && !isMessageFormOpen());
     // Wall panels float toward the viewer when faced (and settle back when not).
     wallBio.update(camera, dt, idleT);
     messageBoard.update(camera, dt, idleT);

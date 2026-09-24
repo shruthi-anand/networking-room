@@ -9,11 +9,12 @@ export const WHITEBOARD_BIO = [
 ];
 export const NOTEBOOK_MESSAGE = 'Leave a message for Shruthi';
 export const SHOT_PROMPT = 'Easy Shot';
+export const SHOOT_NUDGE = 'Shoot a ball';
 export const SCOREBOARD_NAME = 'Shruthi Anand';
 export const BIO = {
   main: "Hi, I'm Shruthi Anand. I design products, build with AI, study interaction design at IDC IIT Bombay, and I'm a licensed architect.",
   // Right-wall text, in styled pieces: plain pieces are solid regular white type; accent pieces glow softly in the
-  // hoop's orange and pulse; outline: true would draw a piece as a heavy outline; newLine starts it on its own line.
+  // wall purple and pulse; outline: true would draw a piece as a heavy outline; newLine starts it on its own line.
   aside: [
     { text: "I made this site last night so I can NET-work better. Don't be a stranger," },
     { text: 'Shoot your shot.', accent: true, newLine: true },
@@ -43,7 +44,7 @@ export const MESSAGE_FORM = {
   subject: 'New message from the Networking Room',
 };
 
-export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE, SHOT_PROMPT, SCOREBOARD_NAME, BIO, FORMSPREE_FORM_ID, MESSAGE_FORM };
+export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE, SHOT_PROMPT, SHOOT_NUDGE, SCOREBOARD_NAME, BIO, FORMSPREE_FORM_ID, MESSAGE_FORM };
 
 export function getWhatsAppUrl() {
   const message = `Hey Shruthi, we met at ${CURRENT_EVENT}! My name is ___`;

@@ -1,4 +1,4 @@
-:root { color-scheme: dark; --ground: #000; --glass: rgba(20, 22, 30, 0.5); --glass-edge: rgba(255, 236, 214, 0.2); --ink: #fff6ec; --ink-dim: rgba(255, 246, 236, 0.66); --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; --display: 'Arial Black', 'Trebuchet MS', sans-serif; --score-font: 'Bricolage Grotesque', 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif; }
+:root { color-scheme: dark; --ground: #000; --glass: rgba(20, 22, 30, 0.5); --glass-edge: rgba(255, 236, 214, 0.2); --ink: #fff6ec; --ink-dim: rgba(255, 246, 236, 0.66); --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; --display: 'Arial Black', 'Trebuchet MS', sans-serif; --purple: #b77bff; --score-font: 'Bricolage Grotesque', 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif; }
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: var(--ground); color: var(--ink); font-family: var(--ui); }
@@ -25,17 +25,26 @@ body { background: var(--ground); color: var(--ink); font-family: var(--ui); }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 @keyframes tilt { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-16deg); } 75% { transform: rotate(16deg); } }
 @keyframes swipe { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-7px); } 70% { transform: translateX(7px); } }
-.page-title { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 9vh); z-index: 3; margin: 0; text-align: center; pointer-events: none; font: 900 clamp(20px, 4vw, 34px)/0.95 var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: transparent; -webkit-text-stroke: 1px var(--ink); opacity: 0; transform: translateY(14px); filter: blur(6px); transition: opacity 700ms ease, transform 900ms cubic-bezier(0.2, 0.9, 0.25, 1), filter 700ms ease; }
-.title-solid { color: var(--ink); text-shadow: 0 0 18px rgba(255, 255, 255, 0.16); }
+.page-title { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 9vh); z-index: 3; margin: 0; text-align: center; pointer-events: none; font: 900 clamp(20px, 4vw, 34px)/0.95 var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: transparent; -webkit-text-stroke: 1px var(--purple); opacity: 0; transform: translateY(14px); filter: blur(6px); transition: opacity 700ms ease, transform 900ms cubic-bezier(0.2, 0.9, 0.25, 1), filter 700ms ease; }
+.title-solid { color: var(--purple); }
+/* Soft luminous purple pulse, on an inner wrapper so it never fights the title's own in/out animations. */
+.page-title__glow { display: inline-block; animation: title-glow 2.8s ease-in-out infinite; }
+@keyframes title-glow { 0%, 100% { filter: drop-shadow(0 0 3px rgba(183, 123, 255, 0.35)); } 50% { filter: drop-shadow(0 0 9px rgba(183, 123, 255, 0.65)); } }
+/* "Shoot a ball" nudge just under the title: only while the view is centred, nothing is selected and no ball thrown yet. */
+.shoot-nudge { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 9vh - 28px); z-index: 3; margin: 0; text-align: center; pointer-events: none; color: var(--ink-dim); font: 700 11px/1 var(--score-font); letter-spacing: 0.22em; text-transform: uppercase; opacity: 0; transition: opacity 420ms ease; }
+.shoot-nudge.is-shown { opacity: 1; }
+.shoot-nudge span { display: inline-block; animation: shoot-nudge 2.4s ease-in-out infinite; }
+@keyframes shoot-nudge { 0%, 100% { opacity: 0.2; transform: translateY(3px); } 50% { opacity: 1; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .page-title__glow { animation: none; filter: drop-shadow(0 0 5px rgba(183, 123, 255, 0.45)); } .shoot-nudge span { animation: none; } }
 .page-title.is-in { opacity: 1; transform: none; filter: blur(0); }
 .page-title.is-wireframe { animation: title-wireframe 1100ms cubic-bezier(0.22, 0.8, 0.28, 1) forwards; }
 .page-title.is-wireframe .title-solid { animation: title-solid-out 1100ms ease forwards; }
 .page-title.is-returning { animation: title-return 900ms cubic-bezier(0.22, 0.8, 0.28, 1) both; }
 .page-title.is-returning .title-solid { animation: title-solid-in 900ms ease both; }
 @keyframes title-wireframe { 0%, 28% { opacity: 1; } 58% { opacity: 0.85; transform: scale(1.04); filter: blur(0); } 100% { opacity: 0; transform: scale(1.12); filter: blur(8px); } }
-@keyframes title-solid-out { 0%, 20% { color: var(--ink); } 50%, 100% { color: transparent; text-shadow: none; } }
+@keyframes title-solid-out { 0%, 20% { color: var(--purple); } 50%, 100% { color: transparent; text-shadow: none; } }
 @keyframes title-return { 0% { opacity: 0; transform: scale(1.08); filter: blur(6px); } 55%, 100% { opacity: 1; transform: none; filter: blur(0); } }
-@keyframes title-solid-in { 0%, 55% { color: transparent; text-shadow: none; } 100% { color: var(--ink); } }
+@keyframes title-solid-in { 0%, 55% { color: transparent; text-shadow: none; } 100% { color: var(--purple); } }
 .shot-prompt { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 9vh); z-index: 5; margin: 0; text-align: center; pointer-events: none; font: 900 clamp(20px, 4vw, 34px)/0.95 var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: transparent; -webkit-text-stroke: 1px var(--ink); animation: shot-in 700ms cubic-bezier(0.2, 0.9, 0.25, 1) 380ms both; }
 @keyframes shot-in { from { opacity: 0; transform: scale(0.92); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
 .connect-hint { position: fixed; left: var(--ball-x); top: var(--ball-y); z-index: 6; display: flex; align-items: center; gap: 0.5rem; color: var(--ink); font: 700 12px/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7); filter: drop-shadow(0 1px 6px rgba(0, 0, 0, 0.6)); pointer-events: none; transform: translate(-50%, -100%); animation: connect-in 260ms ease both; }

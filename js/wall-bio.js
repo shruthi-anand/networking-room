@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { ROOM, RIM_ORANGE } from './core.js';
+import { ROOM } from './core.js';
+import { WALL_PURPLE } from './wall-card.js';
 import { CONFIG } from './config.js';
 
 // Bio aside on the right wall, centred on the wall: solid regular-weight type; accent pieces sit on their own layer so
-// they can glow softly in the hoop's orange and pulse. Pieces and styling come from CONFIG.BIO.aside.
+// they can glow softly in the wall purple and pulse. The panel has a steady purple outline (no pulse, no float). Pieces and styling come from CONFIG.BIO.aside.
 // Text is config-driven and drawn at runtime (see CLAUDE.md). The intro paragraph lives in the HUD (bio-ticker.js).
 const PANEL = { w: 1.9, h: 1.6 };
 const PX = 2048, PY = Math.round(PX * (PANEL.h / PANEL.w));
@@ -62,7 +63,7 @@ function draw(canvas, layer = 'base') {
   // Housing: translucent dark glass, thin white border, faint inner frame line.
   g.fillStyle = 'rgba(12, 13, 18, 0.74)';
   g.beginPath(); g.roundRect(6, 6, PX - 12, PY - 12, 40); g.fill();
-  g.lineWidth = 6; g.strokeStyle = 'rgba(255, 255, 255, 0.42)'; g.stroke();
+  g.lineWidth = 7; g.strokeStyle = WALL_PURPLE; g.stroke();
   g.lineWidth = 3; g.strokeStyle = 'rgba(255, 255, 255, 0.12)';
   g.beginPath(); g.roundRect(34, 34, PX - 68, PY - 68, 24); g.stroke();
 
@@ -89,19 +90,19 @@ function layerTexture(layer, anisotropy) {
 export function createWallBio(anisotropy = 8) {
   const material = new THREE.MeshBasicMaterial({ map: layerTexture('base', anisotropy), transparent: true, toneMapped: false, depthWrite: false });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(PANEL.w, PANEL.h), material);
-  const accentMat = new THREE.MeshBasicMaterial({ map: layerTexture('accent', anisotropy), color: RIM_ORANGE, transparent: true, toneMapped: false, depthWrite: false });
+  const accentMat = new THREE.MeshBasicMaterial({ map: layerTexture('accent', anisotropy), color: WALL_PURPLE, transparent: true, toneMapped: false, depthWrite: false });
   const accent = new THREE.Mesh(new THREE.PlaneGeometry(PANEL.w, PANEL.h), accentMat);
   accent.position.z = 0.003; accent.renderOrder = 1;
   mesh.add(accent);
   mesh.rotation.y = -Math.PI / 2; // face into the room from the +x wall; text reads toward the front
   mesh.position.set(ROOM.x - 0.01, ROOM.y / 2, (ROOM.zBack + ROOM.zFront) / 2);
   // Stays flat on the wall (no float or glow on approach): it is read-only, so it should not look tappable.
-  const orange = new THREE.Color(RIM_ORANGE);
+  const purple = new THREE.Color(WALL_PURPLE);
   return {
     mesh, group: mesh, materials: [material, accentMat],
     update(camera, dt, t) {
-      // Soft luminous pulse on the accent line, never brighter than the hoop orange.
-      accentMat.color.copy(orange).multiplyScalar(0.82 + 0.18 * (0.5 + 0.5 * Math.sin(t * 2.2 + 1.3)));
+      // Same soft luminous pulse as the guestbook title, never brighter than the base purple.
+      accentMat.color.copy(purple).multiplyScalar(0.82 + 0.18 * (0.5 + 0.5 * Math.sin(t * 2.2)));
     },
   };
 }
