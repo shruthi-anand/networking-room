@@ -66,8 +66,8 @@ function startLookAround() {
   look = new LookAroundControls(camera, canvas, { yawLimit: 18, pitchLimit: 8 });
   const hint = createLookHint(hintButton, {
     mode: motionCapable ? 'tilt' : isCoarse ? 'swipe' : 'drag',
-    title: motionCapable ? 'Tilt or swipe to look around' : isCoarse ? 'Swipe to look around' : 'Drag to look around',
-    sub: motionCapable ? 'Tap here to use motion' : '',
+    title: motionCapable ? 'Swipe to look around' : isCoarse ? 'Swipe to look around' : 'Drag to look around',
+    sub: motionCapable ? 'Tap to enable tilt' : '',
     onTap() {
       if (!motionCapable || !look) return;
       if (motionState === 'granted') { look.recenter(); hint.set({ title: 'Tilt to look around', sub: 'View recentered' }); return; }

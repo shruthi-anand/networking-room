@@ -48,7 +48,7 @@ export class LookAroundControls {
     if (this._onFirstOrient) { this._onFirstOrient(); this._onFirstOrient = null; }
     const angle = (screen.orientation && screen.orientation.angle) ?? window.orientation ?? 0; let side, fwd;
     switch ((angle + 360) % 360) { case 90: side = e.beta; fwd = -e.gamma; break; case 270: side = -e.beta; fwd = e.gamma; break; case 180: side = -e.gamma; fwd = -e.beta; break; default: side = e.gamma; fwd = e.beta; }
-    if (!this._baseline) this._baseline = { side, fwd }; const { tiltGain } = this.opts; this.tilt.yaw = -wrap180(side - this._baseline.side) * tiltGain; this.tilt.pitch = wrap180(fwd - this._baseline.fwd) * tiltGain * 0.6;
+    if (!this._baseline) this._baseline = { side, fwd }; const { tiltGain } = this.opts; this.tilt.yaw = wrap180(side - this._baseline.side) * tiltGain; this.tilt.pitch = wrap180(fwd - this._baseline.fwd) * tiltGain * 0.6;
   }
 }
 
