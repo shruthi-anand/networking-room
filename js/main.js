@@ -28,9 +28,9 @@ const intros = [
 intros.forEach((ball) => scene.add(ball.group));
 const base = intros.map((_, i) => ({ pos: new THREE.Vector3(), r: 1, ph: i * 1.7 }));
 const titleEl = document.getElementById('pageTitle');
-const replayBtn = document.getElementById('replay');
 const hintButton = document.getElementById('lookHint');
-const statusEl = document.getElementById('status');
+const shotPrompt = document.getElementById('shotPrompt');
+const swishButton = document.getElementById('swishButton');
 const isCoarse = matchMedia('(pointer: coarse)').matches;
 const motionCapable = isCoarse && typeof window.DeviceOrientationEvent !== 'undefined';
 let look = null;
@@ -38,12 +38,18 @@ let motionState = 'idle';
 let interactive = false;
 let balls = [];
 let ballState = [];
+let focusedBall = null;
+let selectedBall = null;
+let ballsLocked = false;
+let suppressCanvasClick = false;
+let selectionLight = null;
+let selectionRings = null;
 
 function layout() {
   computeBallLayout(camera, window.innerWidth, window.innerHeight).forEach(({ pos, r }, i) => {
     base[i].pos.copy(pos); base[i].r = r;
     if (intros[i]) intros[i].group.scale.setScalar(r);
-    if (balls[i]) { balls[i].scale.setScalar(r); ballState[i].base.copy(pos); ballState[i].bob = r * 0.12; ballState[i].yaw = Math.atan2(camera.position.x - pos.x, camera.position.z - pos.z) + i * Math.PI * 0.5; }
+    if (balls[i]) { balls[i].scale.setScalar(r); ballState[i].base.copy(pos); ballState[i].r = r; ballState[i].bob = r * 0.12; ballState[i].yaw = Math.atan2(camera.position.x - pos.x, camera.position.z - pos.z) + i * Math.PI * 0.5; }
     intros[i]?.setYaw(Math.atan2(camera.position.x - pos.x, camera.position.z - pos.z) + i * Math.PI * 0.5);
   });
 }
@@ -61,8 +67,21 @@ function startLookAround() {
   interactive = true;
   intros.forEach((intro) => scene.remove(intro.group));
   balls = [createBrandBall('linkedin'), createBrandBall('whatsapp')];
-  ballState = balls.map((ball, i) => ({ base: new THREE.Vector3(), yaw: 0, bob: 0, ph: i * 1.7 }));
+  ballState = balls.map((ball, i) => ({ base: new THREE.Vector3(), yaw: 0, bob: 0, emphasis: 0, ph: i * 1.7 }));
   balls.forEach((ball) => scene.add(ball));
+  selectionLight = new THREE.PointLight('#ffd27a', 0, 4);
+  scene.add(selectionLight);
+  selectionRings = new THREE.Group();
+  [0.52, 0.7, 0.88].forEach((radius, index) => {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(radius, 0.018, 8, 64),
+      new THREE.MeshBasicMaterial({ color: '#ffd27a', transparent: true, opacity: 0, depthWrite: false })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.userData.phase = index * 0.7;
+    selectionRings.add(ring);
+  });
+  scene.add(selectionRings);
   look = new LookAroundControls(camera, canvas, { yawLimit: 18, pitchLimit: 8 });
   const hint = createLookHint(hintButton, {
     mode: motionCapable ? 'tilt' : isCoarse ? 'swipe' : 'drag',
@@ -87,20 +106,74 @@ function startLookAround() {
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-canvas.addEventListener('click', (event) => {
-  if (!interactive || !balls.length) return;
+function pickBall(event) {
   pointer.x = (event.clientX / innerWidth) * 2 - 1; pointer.y = -(event.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  const ball = raycaster.intersectObjects(balls)[0]?.object;
+  return raycaster.intersectObjects(balls)[0]?.object || null;
+}
+
+function positionSwish(ball) {
+  const index = balls.indexOf(ball);
+  const state = ballState[index];
+  const projected = ball.position.clone().project(camera);
+  const x = (projected.x + 1) * 0.5 * innerWidth;
+  const y = (-projected.y + 1) * 0.5 * innerHeight;
+  const distance = camera.position.distanceTo(ball.position);
+  const radius = state.r * innerHeight / (2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+  swishButton.style.left = `${x - radius}px`;
+  swishButton.style.top = `${y - radius}px`;
+  swishButton.style.width = `${radius * 2}px`;
+  swishButton.style.height = `${radius * 2}px`;
+}
+
+function focusBall(ball) {
+  if (!ball) {
+    if (ballsLocked) return;
+    focusedBall = null;
+    balls.forEach((item) => { item.userData.focused = false; });
+    return;
+  }
+  focusedBall = ball;
+  balls.forEach((item) => { item.userData.focused = item === ball; });
+}
+
+function selectBall(ball) {
+  if (!ball || ballsLocked) return;
+  ballsLocked = true;
+  selectedBall = ball;
+  focusedBall = ball;
+  balls.forEach((item) => { item.userData.focused = item === ball; });
+  shotPrompt.hidden = false;
+  swishButton.hidden = false;
+  swishButton.setAttribute('aria-label', `Swish with ${ball.userData.kind}`);
+  positionSwish(ball);
+  titleEl.classList.add('is-wireframe');
+}
+
+function activateBall(ball) {
   if (!ball) return;
   const url = ball.userData.kind === 'linkedin' ? CONFIG.LINKEDIN_URL : getWhatsAppUrl();
   window.open(url, '_blank', 'noopener');
+}
+
+canvas.addEventListener('pointermove', (event) => {
+  if (!interactive || isCoarse) return;
+  focusBall(pickBall(event));
 });
+canvas.addEventListener('pointerdown', (event) => {
+  if (!interactive || !isCoarse) return;
+  const ball = pickBall(event);
+  if (ball) { selectBall(ball); suppressCanvasClick = true; }
+});
+canvas.addEventListener('click', (event) => {
+  if (suppressCanvasClick) { suppressCanvasClick = false; return; }
+  if (interactive) selectBall(pickBall(event));
+});
+swishButton.addEventListener('click', () => activateBall(focusedBall));
 
 const clock = new THREE.Clock();
 let start = performance.now();
 let titleShown = false;
-replayBtn.addEventListener('click', () => { window.location.reload(); });
 renderer.setAnimationLoop(() => {
   const t = ((performance.now() - start) / 1000) * (matchMedia('(prefers-reduced-motion: reduce)').matches ? 3 : 1);
   let room = 0, allResolved = true;
@@ -111,9 +184,34 @@ renderer.setAnimationLoop(() => {
       room = Math.max(room, progress.room); allResolved = allResolved && progress.resolved;
     });
     roomMats.forEach((mat, i) => { mat.opacity = roomOpacity[i] * room; }); hoop.setOpacity(room); hoop.update(t);
-    if (allResolved && !titleShown) { titleShown = true; titleEl.classList.add('is-in'); setTimeout(() => { replayBtn.classList.add('is-in'); startLookAround(); }, 900); }
+    if (allResolved && !titleShown) { titleShown = true; titleEl.classList.add('is-in'); startLookAround(); }
   } else {
-    balls.forEach((ball, i) => { const state = ballState[i]; ball.position.set(state.base.x, state.base.y + Math.sin(t * 1.1 + state.ph) * state.bob, state.base.z); ball.rotation.set(0.1, state.yaw + t * 0.42, 0.05); });
+    balls.forEach((ball, i) => {
+      const state = ballState[i];
+      state.emphasis += ((ball.userData.focused ? 1 : 0) - state.emphasis) * 0.16;
+      if (!ballsLocked) {
+        ball.position.set(state.base.x, state.base.y + Math.sin(t * 1.1 + state.ph) * state.bob, state.base.z);
+        ball.rotation.set(0.1, state.yaw + t * 0.42, 0.05);
+      }
+      ball.scale.setScalar(state.r * (1 + state.emphasis * (ball === selectedBall ? 0.18 : 0.1)));
+      ball.material.emissive.set('#ffd27a');
+      ball.material.emissiveIntensity = state.emphasis * (ball === selectedBall ? 0.25 : 0.08);
+      if (ball === selectedBall) positionSwish(ball);
+    });
+    const effectBall = selectedBall || focusedBall;
+    if (effectBall && selectionLight && selectionRings) {
+      const pulse = selectedBall ? 1 + Math.sin(t * 3.2) * 0.08 : 0.9;
+      selectionLight.position.set(effectBall.position.x, effectBall.position.y, effectBall.position.z - 0.45);
+      selectionLight.intensity = (selectedBall ? 2.8 : 1.5) * pulse;
+      selectionRings.visible = true;
+      selectionRings.position.set(effectBall.position.x, 0.025, effectBall.position.z);
+      selectionRings.scale.setScalar(selectedBall ? pulse : 0.92);
+      selectionRings.children.forEach((ring) => {
+        ring.material.opacity = (selectedBall ? 0.48 : 0.22) * (0.8 + Math.sin(t * 3.2 + ring.userData.phase) * 0.2);
+      });
+    } else if (selectionRings) {
+      selectionRings.visible = false;
+    }
     look?.update(clock.getDelta()); hoop.update(t);
   }
   renderer.render(scene, camera);
