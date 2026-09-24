@@ -56,7 +56,7 @@ export function createLookHint(button, { mode, title, sub = '', autoCollapseMs =
   const titleEl = button.querySelector('.look-hint__title'); const subEl = button.querySelector('.look-hint__sub'); let timer = null;
   function set({ mode: m, title: t, sub: s }) { if (m) button.dataset.mode = m; if (t != null) titleEl.textContent = t; if (s != null) subEl.textContent = s; button.setAttribute('aria-label', `${titleEl.textContent}. ${subEl.textContent}`.trim()); }
   function redraw() { button.classList.remove('is-drawing'); void button.getBoundingClientRect(); button.classList.add('is-drawing'); }
-  function open(ms = autoCollapseMs) { button.classList.add('is-open'); clearTimeout(timer); timer = setTimeout(collapse, ms); }
+  function open(ms = autoCollapseMs) { button.classList.add('is-open'); clearTimeout(timer); if (Number.isFinite(ms)) timer = setTimeout(collapse, ms); }
   function collapse() { button.classList.remove('is-open'); }
   button.addEventListener('click', () => { redraw(); open(); onTap && onTap(); }); set({ mode, title, sub }); open();
   return { set, open, collapse, redraw };

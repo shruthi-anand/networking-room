@@ -34,6 +34,7 @@ shotPrompt.textContent = CONFIG.SHOT_PROMPT;
 const connectHint = document.getElementById('connectHint');
 const isCoarse = matchMedia('(pointer: coarse)').matches;
 const motionCapable = isCoarse && typeof window.DeviceOrientationEvent !== 'undefined';
+const SWIPE_ONCE_MS = 3300; // icon draw-in (900ms) + one swipe cycle (2.4s), see .swipe-finger in style.css
 let look = null;
 let motionState = 'idle';
 let interactive = false;
@@ -95,13 +96,15 @@ function startLookAround() {
   scene.add(halo);
   look = new LookAroundControls(camera, canvas, { yawLimit: 18, pitchLimit: 8 });
   const hint = createLookHint(hintButton, {
-    mode: motionCapable ? 'tilt' : isCoarse ? 'swipe' : 'drag',
-    title: motionCapable ? 'Swipe to look around' : isCoarse ? 'Swipe to look around' : 'Drag to look around',
-    sub: motionCapable ? 'Tap to enable tilt' : '',
+    mode: isCoarse ? 'swipe' : 'drag',
+    title: isCoarse ? 'Swipe to look around' : 'Drag to look around',
     onTap() {
       if (!motionCapable || !look) return;
       if (motionState === 'granted') { look.recenter(); hint.set({ title: 'Tilt to look around', sub: 'View recentered' }); return; }
-      hint.set({ title: 'Allow motion', sub: '' });
+      if (motionState === 'pending') { hint.open(Infinity); return; }
+      motionState = 'pending';
+      hint.set({ mode: 'tilt', title: 'Allow motion', sub: '' });
+      hint.open(Infinity);
       look.enableMotion().then((result) => {
         motionState = result;
         if (result === 'granted') hint.set({ mode: 'tilt', title: 'Tilt to look around', sub: 'Tap to recenter' });
@@ -111,7 +114,17 @@ function startLookAround() {
       });
     },
   });
-  hint.open();
+  if (motionCapable) {
+    // Phones: play the swipe gesture once, then stay expanded on the tilt prompt until motion is sorted out.
+    hint.open(Infinity);
+    setTimeout(() => {
+      if (motionState !== 'idle') return;
+      hint.set({ mode: 'tilt', title: 'Tap to enable motion', sub: 'Tilt your phone to look around' });
+      hint.redraw();
+    }, SWIPE_ONCE_MS);
+  } else {
+    hint.open();
+  }
   layout();
 }
 
