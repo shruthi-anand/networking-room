@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
     <title>Net-Work Room</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" />
     <link rel="stylesheet" href="./css/style.css" />
     <script type="importmap">
       { "imports": {
@@ -25,6 +28,10 @@
       </span>
       <span class="look-hint__text"><span class="look-hint__title" id="lookHintTitle">Drag to look around</span><span class="look-hint__sub" id="lookHintSub"></span></span>
     </button>
+    <div class="scoreboard" id="scoreboard" role="status" aria-label="Score">
+      <div class="scoreboard__name" id="scoreboardName"></div>
+      <div class="scoreboard__score"><span class="scoreboard__value" id="scoreboardValue">0</span></div>
+    </div>
     <h1 class="page-title" id="pageTitle">Let's <span class="title-solid">Net</span>-Work</h1>
     <div class="shot-prompt" id="shotPrompt" hidden>
       Easy Shot

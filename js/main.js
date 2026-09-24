@@ -3,6 +3,7 @@ import { addLights, BRAND, buildGridRoom, computeBallLayout, createBrandBall, cr
 import { createBasketballLoadIn } from './load-in.js';
 import { createLookHint, LookAroundControls } from './look-around.js';
 import { CONFIG, getWhatsAppUrl } from './config.js';
+import './scoreboard.js';
 
 const canvas = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });

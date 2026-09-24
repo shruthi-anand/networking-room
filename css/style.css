@@ -1,4 +1,4 @@
-:root { color-scheme: dark; --ground: #000; --glass: rgba(20, 22, 30, 0.5); --glass-edge: rgba(255, 236, 214, 0.2); --ink: #fff6ec; --ink-dim: rgba(255, 246, 236, 0.66); --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; --display: 'Arial Black', 'Trebuchet MS', sans-serif; }
+:root { color-scheme: dark; --ground: #000; --glass: rgba(20, 22, 30, 0.5); --glass-edge: rgba(255, 236, 214, 0.2); --ink: #fff6ec; --ink-dim: rgba(255, 246, 236, 0.66); --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; --display: 'Arial Black', 'Trebuchet MS', sans-serif; --score-font: 'Bricolage Grotesque', 'Avenir Next', 'Helvetica Neue', system-ui, sans-serif; }
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: var(--ground); color: var(--ink); font-family: var(--ui); }
@@ -48,3 +48,11 @@ body { background: var(--ground); color: var(--ink); font-family: var(--ui); }
 @keyframes connect-arrow { 0% { transform: translateY(6px); opacity: 0; } 30% { opacity: 0.8; } 75%, 100% { transform: translateY(-8px); opacity: 0; } }
 @keyframes connect-finger { 0% { transform: translateY(8px); opacity: 0; } 15% { opacity: 1; } 65% { transform: translateY(-8px); opacity: 1; } 85%, 100% { transform: translateY(-10px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .look-hint, .tilt-phone, .swipe-finger, .pan-hand, .connect-arrow, .connect-finger { animation: none; } .look-hint.is-drawing .draw { animation: none; stroke-dashoffset: 0; } .page-title { transform: none; filter: none; transition: opacity 400ms ease; } .shot-prompt { animation-duration: 1ms; } }
+.scoreboard { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: calc(env(safe-area-inset-right, 0px) + 16px); z-index: 10; min-width: 104px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 12px; background: rgba(14, 15, 20, 0.42); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08); color: var(--ink); font-family: var(--score-font); text-align: center; pointer-events: none; animation: scoreboard-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both; }
+.scoreboard__name { padding: 7px 14px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.1); font-weight: 800; font-size: 13px; line-height: 1; letter-spacing: 0.14em; text-transform: uppercase; text-shadow: 0 0 10px rgba(255, 255, 255, 0.35); }
+.scoreboard__score { margin: 0 10px; padding: 6px 8px 8px; border-left: 1px solid rgba(255, 255, 255, 0.12); border-right: 1px solid rgba(255, 255, 255, 0.12); }
+.scoreboard__value { display: inline-block; font-weight: 800; font-size: 36px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.scoreboard__value.is-bumped { animation: score-bump 420ms cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+@keyframes scoreboard-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@keyframes score-bump { 0% { transform: scale(1); } 35% { transform: scale(1.22); text-shadow: 0 0 16px rgba(255, 255, 255, 0.6); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .scoreboard, .scoreboard__value.is-bumped { animation: none; } }
