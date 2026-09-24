@@ -184,6 +184,7 @@ function selectBall(ball) {
   setBioTickerHidden(true);
   titleEl.classList.remove('is-returning');
   titleEl.classList.add('is-wireframe');
+  look?.freeze(); // the room holds still while a ball is selected
 }
 
 function resetSelection() {
@@ -194,6 +195,7 @@ function resetSelection() {
   shotPrompt.hidden = true;
   connectHint.hidden = true;
   setBioTickerHidden(false);
+  look?.unfreeze();
   // Back on the resting screen, so bring the title back.
   if (titleEl.classList.contains('is-wireframe')) {
     titleEl.classList.remove('is-wireframe');
@@ -274,6 +276,8 @@ window.addEventListener('pointercancel', (event) => {
 const clock = new THREE.Clock();
 let start = performance.now();
 let titleShown = false;
+// Idle clock for ambient motion (ball bob/spin, net sway). It stops while a ball is selected so the room pauses in place.
+let idleT = null;
 renderer.setAnimationLoop(() => {
   const t = ((performance.now() - start) / 1000) * (matchMedia('(prefers-reduced-motion: reduce)').matches ? 3 : 1);
   let room = 0, allResolved = true;
@@ -287,19 +291,22 @@ renderer.setAnimationLoop(() => {
     if (allResolved && !titleShown) { titleShown = true; titleEl.classList.add('is-in'); startLookAround(); }
   } else {
     const now = performance.now();
+    const dt = clock.getDelta();
+    if (idleT === null) idleT = t;
+    if (!selectedBall) idleT += dt * (matchMedia('(prefers-reduced-motion: reduce)').matches ? 3 : 1); // same rate as t
     balls.forEach((ball, i) => {
       if (ball === throwing) return; // the throw sequence owns this ball
       const state = ballState[i];
       const selected = ball === selectedBall;
       state.emphasis += ((ball.userData.focused && !selected ? 1 : 0) - state.emphasis) * 0.16;
       state.lift += ((selected ? 1 : 0) - state.lift) * 0.12;
-      ball.position.set(state.base.x, state.base.y + Math.sin(t * 1.1 + state.ph) * state.bob * (1 - state.lift * 0.6), state.base.z);
+      ball.position.set(state.base.x, state.base.y + Math.sin(idleT * 1.1 + state.ph) * state.bob * (1 - state.lift * 0.6), state.base.z);
       if (state.lift > 0.001) {
         selectTarget.copy(ball.position).lerp(camera.position, SELECT_PULL);
         selectTarget.x = THREE.MathUtils.lerp(state.base.x, camera.position.x, SELECT_CENTER);
         ball.position.lerp(selectTarget, state.lift);
       }
-      ball.rotation.set(0.1, state.yaw + t * 0.42, 0.05);
+      ball.rotation.set(0.1, state.yaw + idleT * 0.42, 0.05);
       // After a throw the ball pops back into its spot (same overshoot feel as the load-in pop).
       let pop = 1;
       if (state.respawn) {
@@ -317,9 +324,8 @@ renderer.setAnimationLoop(() => {
       halo.scale.setScalar(haloBall.scale.x * HALO_SHELL);
       halo.material.uniforms.uStrength.value = haloLift * (0.85 + Math.sin(t * 4) * 0.15);
     }
-    const dt = clock.getDelta();
     if (thrower.active) thrower.update(now); else look?.update(dt);
-    hoop.update(t);
+    hoop.update(idleT);
   }
   renderer.render(scene, camera);
 });

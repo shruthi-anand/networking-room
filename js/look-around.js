@@ -13,11 +13,11 @@ function requestMotionPermission() {
 export class LookAroundControls {
   constructor(camera, domElement, opts = {}) {
     this.camera = camera; this.dom = domElement;
-    this.opts = { yawLimit: 38, pitchLimit: 10, dragSpeed: 0.16, tiltGain: 1.15, damping: 7, overscroll: 0.3, ...opts };
+    this.opts = { yawLimit: 38, pitchLimit: 10, dragSpeed: 0.16, tiltGain: 1.15, damping: 7, ...opts };
     camera.rotation.order = 'YXZ'; this.baseYaw = camera.rotation.y; this.basePitch = camera.rotation.x;
     this.drag = { yaw: 0, pitch: 0 }; this.tilt = { yaw: 0, pitch: 0 }; this.yaw = 0; this.pitch = 0;
-    this.dragging = false; this.motionActive = false; this._pointerId = null; this._baseline = null; this._onFirstOrient = null;
-    this._down = this._down.bind(this); this._move = this._move.bind(this); this._up = this._up.bind(this); this._orient = this._orient.bind(this); this._reorient = () => this.recenter();
+    this.dragging = false; this.motionActive = false; this.frozen = false; this._pointerId = null; this._last = null; this._onFirstOrient = null;
+    this._down = this._down.bind(this); this._move = this._move.bind(this); this._up = this._up.bind(this); this._orient = this._orient.bind(this); this._reorient = () => { this._last = null; this.recenter(); };
     domElement.addEventListener('pointerdown', this._down); window.addEventListener('pointermove', this._move); window.addEventListener('pointerup', this._up); window.addEventListener('pointercancel', this._up);
   }
   get inputMode() { return this.motionActive ? 'tilt' : 'drag'; }
@@ -26,32 +26,44 @@ export class LookAroundControls {
     return permission.then((res) => {
       if (res !== 'granted') return res;
       if (this.motionActive) { this.recenter(); return 'granted'; }
-      this._baseline = null; window.addEventListener('deviceorientation', this._orient); window.addEventListener('orientationchange', this._reorient);
+      this._last = null; window.addEventListener('deviceorientation', this._orient); window.addEventListener('orientationchange', this._reorient);
       return new Promise((resolve) => { const timer = setTimeout(() => { this.disableMotion(); resolve('unsupported'); }, 1200); this._onFirstOrient = () => { clearTimeout(timer); this.motionActive = true; resolve('granted'); }; });
     });
   }
   disableMotion() { window.removeEventListener('deviceorientation', this._orient); window.removeEventListener('orientationchange', this._reorient); this.motionActive = false; this.tilt.yaw = this.tilt.pitch = 0; }
-  recenter() { this._baseline = null; this.drag.yaw = this.drag.pitch = 0; }
+  recenter() { this.tilt.yaw = this.tilt.pitch = 0; this.drag.yaw = this.drag.pitch = 0; }
   // While suspended (e.g. a ball press or the throw sequence) pointer drags do not move the camera and update() is not called.
   suspend() { this.suspended = true; if (this.dragging) { this.dragging = false; this._pointerId = null; this.dom.classList.remove('is-dragging'); } }
   resume() { this.suspended = false; }
+  // Frozen (a ball is selected): the view holds completely still. Tilt keeps being tracked but not applied,
+  // so unfreezing carries on from the same view instead of jumping to wherever the phone now points.
+  freeze() { this.frozen = true; this.suspend(); }
+  unfreeze() { this.frozen = false; this.suspended = false; }
   update(dt) {
+    if (this.frozen) return;
     const { yawLimit: Y, pitchLimit: P, damping } = this.opts; let ty = this.drag.yaw + this.tilt.yaw, tp = this.drag.pitch + this.tilt.pitch;
     if (!this.dragging) { ty = clamp(ty, -Y, Y); tp = clamp(tp, -P, P); }
     const k = 1 - Math.exp(-damping * Math.min(dt, 0.1)); this.yaw += (ty - this.yaw) * k; this.pitch += (tp - this.pitch) * k;
     this.camera.rotation.set(this.basePitch + this.pitch * DEG, this.baseYaw + this.yaw * DEG, 0);
   }
   dispose() { this.disableMotion(); this.dom.removeEventListener('pointerdown', this._down); window.removeEventListener('pointermove', this._move); window.removeEventListener('pointerup', this._up); window.removeEventListener('pointercancel', this._up); }
-  _down(e) { if (this.suspended) return; if (e.pointerType === 'mouse' && e.button !== 0) return; if (this._pointerId !== null) return; this._pointerId = e.pointerId; this.dragging = true; this._lx = e.clientX; this._ly = e.clientY; this.dom.classList.add('is-dragging'); }
-  _move(e) { if (!this.dragging || e.pointerId !== this._pointerId) return; const dx = e.clientX - this._lx, dy = e.clientY - this._ly; this._lx = e.clientX; this._ly = e.clientY; const { dragSpeed, overscroll, yawLimit: Y, pitchLimit: P } = this.opts; this.drag.yaw += this._resist(dx * dragSpeed, this.drag.yaw + this.tilt.yaw, Y, overscroll); this.drag.pitch += this._resist(dy * dragSpeed, this.drag.pitch + this.tilt.pitch, P, overscroll); }
+  _down(e) { if (this.suspended || this.frozen) return; if (e.pointerType === 'mouse' && e.button !== 0) return; if (this._pointerId !== null) return; this._pointerId = e.pointerId; this.dragging = true; this._lx = e.clientX; this._ly = e.clientY; this.dom.classList.add('is-dragging'); }
+  _move(e) { if (!this.dragging || e.pointerId !== this._pointerId) return; const dx = e.clientX - this._lx, dy = e.clientY - this._ly; this._lx = e.clientX; this._ly = e.clientY; const { dragSpeed, yawLimit: Y, pitchLimit: P } = this.opts; this.drag.yaw = clamp(this.drag.yaw + dx * dragSpeed, -Y - this.tilt.yaw, Y - this.tilt.yaw); this.drag.pitch = clamp(this.drag.pitch + dy * dragSpeed, -P - this.tilt.pitch, P - this.tilt.pitch); }
   _up(e) { if (e.pointerId !== this._pointerId) return; this._pointerId = null; this.dragging = false; this.dom.classList.remove('is-dragging'); const { yawLimit: Y, pitchLimit: P } = this.opts; this.drag.yaw = clamp(this.drag.yaw + this.tilt.yaw, -Y, Y) - this.tilt.yaw; this.drag.pitch = clamp(this.drag.pitch + this.tilt.pitch, -P, P) - this.tilt.pitch; }
-  _resist(delta, total, limit, factor) { return Math.abs(total) > limit && Math.sign(delta) === Math.sign(total) ? delta * factor : delta; }
   _orient(e) {
     if (e.beta == null || e.gamma == null) return;
     if (this._onFirstOrient) { this._onFirstOrient(); this._onFirstOrient = null; }
     const angle = (screen.orientation && screen.orientation.angle) ?? window.orientation ?? 0; let side, fwd;
     switch ((angle + 360) % 360) { case 90: side = e.beta; fwd = -e.gamma; break; case 270: side = -e.beta; fwd = e.gamma; break; case 180: side = -e.gamma; fwd = -e.beta; break; default: side = e.gamma; fwd = e.beta; }
-    if (!this._baseline) this._baseline = { side, fwd }; const { tiltGain } = this.opts; this.tilt.yaw = wrap180(side - this._baseline.side) * tiltGain; this.tilt.pitch = wrap180(fwd - this._baseline.fwd) * tiltGain * 0.6;
+    // Track tilt as small per-event changes. The sensor flips by ~180° when the phone passes ±90° (gamma wraps),
+    // so any single jump over 45° is that flip, not real movement, and is ignored instead of throwing the view across.
+    const last = this._last; this._last = { side, fwd };
+    if (!last || this.frozen) return;
+    const step = (now, prev) => { const d = wrap180(now - prev); return Math.abs(d) > 45 ? 0 : d; };
+    const { tiltGain, yawLimit: Y, pitchLimit: P } = this.opts;
+    // Hard stop at the limits: tilting further holds the view at the edge, tilting back moves it straight away.
+    this.tilt.yaw = clamp(this.tilt.yaw + step(side, last.side) * tiltGain, -Y - this.drag.yaw, Y - this.drag.yaw);
+    this.tilt.pitch = clamp(this.tilt.pitch + step(fwd, last.fwd) * tiltGain * 0.6, -P - this.drag.pitch, P - this.drag.pitch);
   }
 }
 
