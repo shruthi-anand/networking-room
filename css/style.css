@@ -69,3 +69,6 @@ body { background: var(--ground); color: var(--ink); font-family: var(--ui); }
 @keyframes score-bump { 0% { transform: scale(1); } 35% { transform: scale(1.22); text-shadow: 0 0 16px rgba(255, 255, 255, 0.6); } 100% { transform: scale(1); } }
 @media (max-width: 480px) { .hud { left: calc(env(safe-area-inset-left, 0px) + 16px); } .bio-ticker { flex: 1; min-width: 0; width: auto; margin-top: 48px; padding: 9px 10px 10px 12px; } .bio-ticker__text { padding-left: 8px; font-size: 12.5px; line-height: 1.36; } .scoreboard { min-width: 0; max-width: 100px; } .scoreboard__name { padding: 7px 10px 6px; font-size: 12px; line-height: 1.15; letter-spacing: 0.1em; } .scoreboard__value { font-size: 32px; } }
 @media (prefers-reduced-motion: reduce) { .scoreboard, .scoreboard__value.is-bumped, .bio-ticker, .bio-ticker__caret { animation: none; } .bio-ticker { transition: opacity 200ms ease; } }
+.throw-wipe { position: fixed; inset: 0; z-index: 30; background: var(--wipe, #000); opacity: 0; pointer-events: none; }
+.throw-wipe[hidden] { display: none; }
+.throw-wipe.is-leaving { transition: opacity 450ms ease; }

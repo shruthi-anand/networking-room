@@ -1,6 +1,6 @@
 export const LINKEDIN_URL = 'https://www.linkedin.com/in/shruthianand-uxd/';
 export const WHATSAPP_NUMBER = '917349079301';
-export const CURRENT_EVENT = 'the networking room';
+export const CURRENT_EVENT = 'Women in Product, Bangalore';
 export const WHITEBOARD_BIO = [
   'Product Designer',
   'AI Builder',
@@ -18,6 +18,6 @@ export const BIO = {
 export const CONFIG = { LINKEDIN_URL, WHATSAPP_NUMBER, CURRENT_EVENT, WHITEBOARD_BIO, NOTEBOOK_MESSAGE, SHOT_PROMPT, SCOREBOARD_NAME, BIO };
 
 export function getWhatsAppUrl() {
-  const message = `Hey Shruthi, we met at ${CURRENT_EVENT}. My name is ___`;
+  const message = `Hey Shruthi, we met at ${CURRENT_EVENT}! My name is ___`;
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }

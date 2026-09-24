@@ -32,6 +32,9 @@ export class LookAroundControls {
   }
   disableMotion() { window.removeEventListener('deviceorientation', this._orient); window.removeEventListener('orientationchange', this._reorient); this.motionActive = false; this.tilt.yaw = this.tilt.pitch = 0; }
   recenter() { this._baseline = null; this.drag.yaw = this.drag.pitch = 0; }
+  // While suspended (e.g. a ball press or the throw sequence) pointer drags do not move the camera and update() is not called.
+  suspend() { this.suspended = true; if (this.dragging) { this.dragging = false; this._pointerId = null; this.dom.classList.remove('is-dragging'); } }
+  resume() { this.suspended = false; }
   update(dt) {
     const { yawLimit: Y, pitchLimit: P, damping } = this.opts; let ty = this.drag.yaw + this.tilt.yaw, tp = this.drag.pitch + this.tilt.pitch;
     if (!this.dragging) { ty = clamp(ty, -Y, Y); tp = clamp(tp, -P, P); }
@@ -39,7 +42,7 @@ export class LookAroundControls {
     this.camera.rotation.set(this.basePitch + this.pitch * DEG, this.baseYaw + this.yaw * DEG, 0);
   }
   dispose() { this.disableMotion(); this.dom.removeEventListener('pointerdown', this._down); window.removeEventListener('pointermove', this._move); window.removeEventListener('pointerup', this._up); window.removeEventListener('pointercancel', this._up); }
-  _down(e) { if (e.pointerType === 'mouse' && e.button !== 0) return; if (this._pointerId !== null) return; this._pointerId = e.pointerId; this.dragging = true; this._lx = e.clientX; this._ly = e.clientY; this.dom.classList.add('is-dragging'); }
+  _down(e) { if (this.suspended) return; if (e.pointerType === 'mouse' && e.button !== 0) return; if (this._pointerId !== null) return; this._pointerId = e.pointerId; this.dragging = true; this._lx = e.clientX; this._ly = e.clientY; this.dom.classList.add('is-dragging'); }
   _move(e) { if (!this.dragging || e.pointerId !== this._pointerId) return; const dx = e.clientX - this._lx, dy = e.clientY - this._ly; this._lx = e.clientX; this._ly = e.clientY; const { dragSpeed, overscroll, yawLimit: Y, pitchLimit: P } = this.opts; this.drag.yaw += this._resist(dx * dragSpeed, this.drag.yaw + this.tilt.yaw, Y, overscroll); this.drag.pitch += this._resist(dy * dragSpeed, this.drag.pitch + this.tilt.pitch, P, overscroll); }
   _up(e) { if (e.pointerId !== this._pointerId) return; this._pointerId = null; this.dragging = false; this.dom.classList.remove('is-dragging'); const { yawLimit: Y, pitchLimit: P } = this.opts; this.drag.yaw = clamp(this.drag.yaw + this.tilt.yaw, -Y, Y) - this.tilt.yaw; this.drag.pitch = clamp(this.drag.pitch + this.tilt.pitch, -P, P) - this.tilt.pitch; }
   _resist(delta, total, limit, factor) { return Math.abs(total) > limit && Math.sign(delta) === Math.sign(total) ? delta * factor : delta; }

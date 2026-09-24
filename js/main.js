@@ -3,7 +3,8 @@ import { addLights, BRAND, buildGridRoom, computeBallLayout, createBrandBall, cr
 import { createBasketballLoadIn } from './load-in.js';
 import { createLookHint, LookAroundControls } from './look-around.js';
 import { CONFIG, getWhatsAppUrl } from './config.js';
-import './scoreboard.js';
+import { incrementScore } from './scoreboard.js';
+import { createThrow } from './throw.js';
 import { createWallBio } from './wall-bio.js';
 import { startBioTicker, setBioTickerHidden } from './bio-ticker.js';
 
@@ -48,9 +49,12 @@ let ballState = [];
 let focusedBall = null;
 let selectedBall = null;
 let ballsLocked = false;
-let suppressCanvasClick = false;
 let haloBall = null;
-let connectStart = null;
+let press = null;
+let throwing = null;
+const SWIPE_MIN = 40, TAP_SLOP = 10;
+const THROW_COLOR = { linkedin: BRAND.linkedin.base, whatsapp: BRAND.whatsapp.base };
+const thrower = createThrow({ camera, hoop, wipeEl: document.getElementById('throwWipe') });
 
 // Selected ball: pulled toward the camera and centre, scaled up, wrapped in a game-style selection halo.
 const SELECT_PULL = 0.3, SELECT_CENTER = 0.9, SELECT_SCALE = 0.38, HALO_SHELL = 1.32;
@@ -195,43 +199,73 @@ function resetSelection() {
   }
 }
 
-function activateBall(ball) {
-  if (!ball) return;
-  const url = ball.userData.kind === 'linkedin' ? CONFIG.LINKEDIN_URL : getWhatsAppUrl();
-  window.open(url, '_blank', 'noopener');
-  resetSelection();
+function destinationFor(ball) {
+  return ball.userData.kind === 'linkedin' ? CONFIG.LINKEDIN_URL : getWhatsAppUrl();
 }
 
+// Open in a new tab. If the browser blocks it (e.g. iOS Safari once the animation has outlived the gesture),
+// fall back to navigating this tab so the visitor still lands on the destination.
+function routeTo(url) {
+  const tab = window.open(url, '_blank');
+  if (tab) { try { tab.opener = null; } catch { /* cross-origin already */ } } else window.location.assign(url);
+}
+
+function throwBall(ball) {
+  if (throwing || !ball) return;
+  const i = balls.indexOf(ball), kind = ball.userData.kind;
+  throwing = ball;
+  // Clear selection visuals; the resting UI stays hidden for the whole sequence.
+  selectedBall = null; focusedBall = null; haloBall = null; ballsLocked = true;
+  balls.forEach((item) => { item.userData.focused = false; });
+  ballState[i].lift = 0; ballState[i].emphasis = 0;
+  shotPrompt.hidden = true; connectHint.hidden = true;
+  setBioTickerHidden(true);
+  titleEl.classList.remove('is-returning'); titleEl.classList.add('is-wireframe');
+  look.suspend();
+  thrower.start(ball, {
+    radius: ballState[i].r,
+    color: THROW_COLOR[kind],
+    reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
+    onScore: () => incrementScore(),
+    onRoute: () => routeTo(destinationFor(ball)),
+    onFinish: () => {
+      ballState[i].respawn = performance.now();
+      throwing = null;
+      look.resume();
+      resetSelection();
+    },
+  });
+}
+// Coming back to this page from a same-tab navigation (bfcache): drop straight back into the room.
+window.addEventListener('pageshow', (event) => { if (event.persisted && thrower.active) thrower.finish(); });
+
 canvas.addEventListener('pointermove', (event) => {
-  if (!interactive || isCoarse) return;
+  if (!interactive || isCoarse || throwing) return;
   focusBall(pickBall(event));
 });
+// One gesture model: press on a ball + swipe/drag up throws it; a small tap selects/deselects; anything else is free-look.
 canvas.addEventListener('pointerdown', (event) => {
-  if (!interactive) return;
+  if (!interactive || throwing || press) return;
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
   const ball = pickBall(event);
-  if (selectedBall) {
-    if (ball !== selectedBall) resetSelection();
-    else connectStart = { x: event.clientX, y: event.clientY };
-    suppressCanvasClick = true;
-  } else if (ball) {
-    selectBall(ball); suppressCanvasClick = true;
-  }
-});
-canvas.addEventListener('click', (event) => {
-  if (suppressCanvasClick) { suppressCanvasClick = false; return; }
-  if (!interactive) return;
-  const ball = pickBall(event);
-  if (selectedBall) {
-    if (ball !== selectedBall) resetSelection();
-  } else {
-    selectBall(ball);
-  }
+  press = { id: event.pointerId, ball, x: event.clientX, y: event.clientY };
+  if (ball) look.suspend(); // pressing a ball never turns the camera
 });
 window.addEventListener('pointerup', (event) => {
-  if (!connectStart || !selectedBall) { connectStart = null; return; }
-  const distance = connectStart.y - event.clientY;
-  connectStart = null;
-  if (distance > 48) activateBall(selectedBall);
+  if (!press || event.pointerId !== press.id) return;
+  const { ball, x, y } = press;
+  press = null;
+  const dx = event.clientX - x, dy = y - event.clientY;
+  if (ball && dy > SWIPE_MIN && dy > Math.abs(dx)) { throwBall(ball); return; }
+  if (ball) look.resume();
+  if (Math.hypot(dx, dy) > TAP_SLOP) return;
+  const hit = pickBall(event);
+  if (selectedBall) { if (hit !== selectedBall) resetSelection(); } else if (hit) selectBall(hit);
+});
+window.addEventListener('pointercancel', (event) => {
+  if (!press || event.pointerId !== press.id) return;
+  press = null;
+  if (!throwing) look.resume();
 });
 
 const clock = new THREE.Clock();
@@ -249,7 +283,9 @@ renderer.setAnimationLoop(() => {
     roomMats.forEach((mat, i) => { mat.opacity = roomOpacity[i] * room; }); hoop.setOpacity(room); hoop.update(t);
     if (allResolved && !titleShown) { titleShown = true; titleEl.classList.add('is-in'); startLookAround(); }
   } else {
+    const now = performance.now();
     balls.forEach((ball, i) => {
+      if (ball === throwing) return; // the throw sequence owns this ball
       const state = ballState[i];
       const selected = ball === selectedBall;
       state.emphasis += ((ball.userData.focused && !selected ? 1 : 0) - state.emphasis) * 0.16;
@@ -261,7 +297,14 @@ renderer.setAnimationLoop(() => {
         ball.position.lerp(selectTarget, state.lift);
       }
       ball.rotation.set(0.1, state.yaw + t * 0.42, 0.05);
-      ball.scale.setScalar(state.r * (1 + state.emphasis * 0.1 + state.lift * SELECT_SCALE));
+      // After a throw the ball pops back into its spot (same overshoot feel as the load-in pop).
+      let pop = 1;
+      if (state.respawn) {
+        const k = Math.min(1, (now - state.respawn) / 550);
+        pop = 1 + 2.2 * Math.pow(k - 1, 3) + 1.2 * Math.pow(k - 1, 2);
+        if (k >= 1) state.respawn = 0;
+      }
+      ball.scale.setScalar(state.r * (1 + state.emphasis * 0.1 + state.lift * SELECT_SCALE) * pop);
       if (selected) positionConnectHint(ball);
     });
     const haloLift = haloBall ? ballState[balls.indexOf(haloBall)].lift : 0;
@@ -271,7 +314,9 @@ renderer.setAnimationLoop(() => {
       halo.scale.setScalar(haloBall.scale.x * HALO_SHELL);
       halo.material.uniforms.uStrength.value = haloLift * (0.85 + Math.sin(t * 4) * 0.15);
     }
-    look?.update(clock.getDelta()); hoop.update(t);
+    const dt = clock.getDelta();
+    if (thrower.active) thrower.update(now); else look?.update(dt);
+    hoop.update(t);
   }
   renderer.render(scene, camera);
 });

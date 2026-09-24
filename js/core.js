@@ -173,14 +173,19 @@ export function createHoop() {
   [0.5, 1].forEach((t) => { const pts = []; for (let k = 0; k <= 48; k++) { const a = (k / 48) * Math.PI * 2; pts.push(V(Math.cos(a) * radiusAt(t), -t * NL, Math.sin(a) * radiusAt(t))); } netGeos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 48, 0.003, 5, true)); });
   const net = new THREE.Mesh(mergeGeometries(netGeos), std({ color: '#e6e3df', roughness: 0.95 })); net.position.set(0, rimY, rimZ); group.add(net);
   group.position.copy(HOOP_POS);
-  let fade = 1;
+  let fade = 1, lastT = 0, swishAt = -10;
+  const rimCenter = V(HOOP_POS.x, HOOP_POS.y + rimY, HOOP_POS.z + rimZ);
   return {
-    group, materials: mats,
+    group, materials: mats, rim: { center: rimCenter, radius: RIM_R, netLength: NL },
     update(t) {
-      net.rotation.y = Math.sin(t * 0.7) * 0.05; net.scale.y = 1 + Math.sin(t * 1.3) * 0.01;
+      lastT = t;
+      // Swish: the net stretches and wobbles for a moment after a ball drops through, then settles.
+      const s = t - swishAt, kick = s >= 0 && s < 1.2 ? Math.exp(-s * 4.5) : 0;
+      net.rotation.y = Math.sin(t * 0.7) * 0.05 + kick * Math.sin(s * 22) * 0.12; net.scale.y = 1 + Math.sin(t * 1.3) * 0.01 + kick * 0.22;
       const hum = 0.94 + Math.sin(t * 2.1) * 0.06;
       glows.forEach(([m, base]) => { m.opacity = base * fade * hum; }); rimLight.intensity = 0.12 * fade * hum;
     },
+    swish() { swishAt = lastT; },
     setOpacity(o) { fade = o; mats.forEach((m) => { m.transparent = o < 1; m.opacity = o; m.depthWrite = o > 0.5; }); },
   };
 }
