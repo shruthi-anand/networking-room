@@ -91,7 +91,7 @@ export function createBrandBall(kind, radius = 1) {
 }
 
 const CAM_Y = 1.4;
-const ROOM = { x: 1.7, y: 3.0, zBack: -4.2, zFront: 1.6, step: 0.4 };
+const ROOM = { x: 2.6, y: 3.0, zBack: -4.2, zFront: 1.6, step: 0.4 };
 const HOOP_POS = V(0, CAM_Y + 0.95, ROOM.zBack);
 const BOARD_Z = 0.8;
 

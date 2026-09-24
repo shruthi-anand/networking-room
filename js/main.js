@@ -100,7 +100,7 @@ function startLookAround() {
   ballState = balls.map((ball, i) => ({ base: new THREE.Vector3(), yaw: 0, bob: 0, emphasis: 0, lift: 0, ph: i * 1.7 }));
   balls.forEach((ball) => scene.add(ball));
   scene.add(halo);
-  look = new LookAroundControls(camera, canvas, { yawLimit: 18, pitchLimit: 8 });
+  look = new LookAroundControls(camera, canvas, { yawLimit: 110, pitchLimit: 12 });
   const hint = createLookHint(hintButton, {
     mode: isCoarse ? 'swipe' : 'drag',
     title: isCoarse ? 'Swipe to look around' : 'Drag to look around',
