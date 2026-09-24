@@ -9,6 +9,7 @@ import { createWallBio } from './wall-bio.js';
 import { startBioTicker, setBioTickerHidden } from './bio-ticker.js';
 import { createMessageBoard } from './message-board.js';
 import { openMessageForm, isMessageFormOpen } from './message-form.js';
+import { track } from './analytics.js';
 
 const canvas = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -159,7 +160,10 @@ function pickBoard(event) {
 
 function openGuestbook() {
   look.freeze(); // the room holds still behind the overlay
-  openMessageForm({ onClose: () => look.unfreeze() });
+  openMessageForm({
+    onClose: () => look.unfreeze(),
+    onSent: ({ contactType, hasMessage }) => track('message_sent', { contact_type: contactType, has_message: hasMessage }),
+  });
 }
 
 function pickBall(event) {
@@ -251,7 +255,10 @@ function throwBall(ball) {
     color: THROW_COLOR[kind],
     reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
     onScore: () => incrementScore(),
-    onRoute: () => routeTo(destinationFor(ball)),
+    onRoute: () => {
+      track(kind === 'linkedin' ? 'linkedin_click' : 'whatsapp_click', { source: 'throw' });
+      routeTo(destinationFor(ball));
+    },
     onFinish: () => {
       ballState[i].respawn = performance.now();
       throwing = null;
